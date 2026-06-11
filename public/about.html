@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works — Nova Shuttle</title>
+<meta name="theme-color" content="#050510">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero { text-align: center; padding: 80px 0 20px; }
+  .hero .lede { color: #b9bac8; max-width: 640px; margin: 18px auto 0; }
+
+  .steps { margin-top: 56px; text-align: center; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 34px; text-align: left; }
+  .step { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; padding: 26px; backdrop-filter: blur(10px); }
+  .step .n { font-size: 44px; font-weight: 800; letter-spacing: -.04em; line-height: 1;
+    background: linear-gradient(135deg, #5ad7ff, #8e9bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .step b { display: block; font-size: 18px; color: #fff; margin: 14px 0 6px; }
+  .step span { color: #a9aabb; font-size: 14.5px; }
+  .tagline { margin-top: 26px; color: #8a8a9e; font-size: 15px; text-align: center; }
+  .tagline b { color: #fff; }
+
+  .strip { margin-top: 96px; text-align: center; }
+  .strip .lede { color: #a9aabb; }
+  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 34px; text-align: left; }
+  .feat b { color: #fff; display: block; margin: 10px 0 4px; font-size: 16px; }
+  .feat .e { font-size: 24px; }
+  .feat span { color: #a9aabb; font-size: 14px; }
+  .feat { border-radius: 18px; padding: 22px; transition: transform .25s var(--ease), border-color .25s; }
+  .feat:hover { transform: translateY(-5px); border-color: rgba(110,168,255,.4); }
+
+  .rfid { margin-top: 96px; }
+  .rfid .card { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; padding: 36px; border-radius: 26px; }
+  .rfid .viz { flex: none; width: 200px; height: 126px; border-radius: 16px; position: relative;
+    background: linear-gradient(135deg, #0b1020, #1a1340); border: 1px solid rgba(142,92,247,.4);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .rfid .viz .chipic { width: 52px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #f5d061, #b8860b); }
+  .rfid .viz .wave { position: absolute; inset: 0; border-radius: 16px; border: 2px solid rgba(10,132,255,.5); animation: rwave 2.2s ease-out infinite; }
+  @keyframes rwave { 0% { transform: scale(.7); opacity: .9 } 100% { transform: scale(1.15); opacity: 0 } }
+  .rfid h2 { color: #fff; font-size: clamp(22px, 3vw, 30px); letter-spacing: -.02em; }
+  .rfid p { color: #a9aabb; margin-top: 10px; max-width: 560px; }
+
+  .logi { margin-top: 96px; }
+  .logi .card { padding: 44px; background: linear-gradient(135deg, rgba(11,16,32,.9), rgba(26,19,64,.9));
+    border: 1px solid rgba(142,92,247,.3); border-radius: 28px; position: relative; overflow: hidden; }
+  .logi .card::after { content:''; position:absolute; width:420px; height:420px; border-radius:50%;
+    background: radial-gradient(circle, rgba(142,92,247,.35), transparent 70%); top:-140px; right:-90px; }
+  .logi h2 { color: #fff; font-size: clamp(24px,3.6vw,36px); letter-spacing: -.03em; position: relative; }
+  .logi p { color: rgba(255,255,255,.72); max-width: 580px; margin-top: 12px; position: relative; }
+  .logi .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; position: relative; }
+  .logi .pill { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); padding: 9px 15px; border-radius: 980px; font-size: 13px; font-weight: 600; color: #fff; }
+
+  .phone-box { margin-top: 96px; }
+  .phone-box .card { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; padding: 30px; border-radius: 24px; }
+  .phone-box h3 { color: #fff; }
+  code.url { background: rgba(10,132,255,.14); color: #8fc1ff; padding: 6px 14px; border-radius: 10px; font-size: 15px; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
+
+  .ctafoot { margin-top: 90px; text-align: center; }
+  .btn.neon { background: linear-gradient(92deg, #0a84ff, #8e5cf7); box-shadow: 0 0 28px rgba(10,132,255,.4); }
+  footer { margin-top: 70px; text-align: center; color: #5a5a6e; font-size: 13px; padding-bottom: 26px; }
+</style>
+</head>
+<body class="dark-app">
+<div class="bgveil"></div>
+
+<nav class="nav"><div class="nav-inner">
+  <a class="brand" href="/"><span class="logo">N</span><b>Nova Shuttle</b></a>
+  <span class="spacer"></span>
+  <a class="link" href="/">Sign in</a>
+</div></nav>
+
+<div class="wrap">
+  <section class="hero">
+    <h1 class="display" style="color:#fff">Three steps.<br><span class="grad">Two seconds.</span></h1>
+    <p class="lede">No tickets. No cash. No queues. Convenience is the product — the security runs invisibly underneath.</p>
+  </section>
+
+  <section class="steps reveal">
+    <div class="grid3">
+      <div class="step"><div class="n">01</div><b>Open your pass</b><span>It lives on your home screen like an app — one tap and your live code is up. Phone dead? Your tap card or a manual check-in still boards you.</span></div>
+      <div class="step"><div class="n">02</div><b>Show it at the door</b><span>Hold the QR to the validator, or tap your RFID card on the reader. Tap the code for fullscreen boarding mode — the screen stays awake for you.</span></div>
+      <div class="step"><div class="n">03</div><b>Green light. Go.</b><span>The driver just glances. You're aboard before your friend finds their old paper card.</span></div>
+    </div>
+    <p class="tagline">Riders do <b>less</b> than before — that's the whole point.</p>
+  </section>
+
+  <section class="rfid reveal">
+    <div class="card">
+      <div class="viz"><div class="wave"></div><div class="chipic"></div></div>
+      <div style="flex:1;min-width:260px">
+        <span class="eyebrow" style="color:#6ea8ff">RFID FIRST</span>
+        <h2 style="margin-top:8px">Your card is the fastest lane.</h2>
+        <p>A chip sticker turns the existing student card into a tap card — tap the reader at the door and you're aboard, phone optional. Any USB reader works, plug-and-play. Lost the card? Block it from your pass in one tap and every bus rejects it instantly while your QR keeps working.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="strip reveal">
+    <h2 class="section">Why nobody sneaks past it</h2>
+    <p class="lede" style="margin-top:10px">Six guardrails, layered. Cheating becomes harder than paying.</p>
+    <div class="feats">
+      <div class="feat reveal"><span class="e">🔄</span><b>Rotating codes</b><span>The QR re-generates every 30 seconds — screenshots die before they reach a friend.</span></div>
+      <div class="feat reveal"><span class="e">🪪</span><b>Photo on every scan</b><span>The owner's photo flashes to the driver. A borrowed pass shows the wrong face.</span></div>
+      <div class="feat reveal"><span class="e">🚫</span><b>Anti-passback</b><span>One green per student per trip. The phone passed back through the window scans red.</span></div>
+      <div class="feat reveal"><span class="e">🔐</span><b>Card kill switch</b><span>Lost RFID card? Blocked in one message — every bus rejects it instantly.</span></div>
+      <div class="feat reveal"><span class="e">🛡️</span><b>Hardened backend</b><span>Hashed PINs, expiring sessions, rate-limited logins, device-keyed validators, audit trail.</span></div>
+      <div class="feat reveal"><span class="e">🧾</span><b>Everything logged</b><span>Every green and red lands in the console live, with a reason. Enforcement moves to the office.</span></div>
+    </div>
+  </section>
+
+  <section class="logi reveal">
+    <div class="card">
+      <span class="eyebrow" style="color:#8ab4ff">NOT JUST A TURNSTILE</span>
+      <h2 style="margin-top:10px">Every tap is a logistics decision.</h2>
+      <p>Boardings stream into a demand heatmap the moment they happen. Nova turns them into fleet recommendations — add a bus at the 8:30 rush, stretch the quiet 2pm run — so the shuttle costs less and waits shorter.</p>
+      <div class="pills">
+        <span class="pill">📡 Real-time event stream</span>
+        <span class="pill">📈 Demand heatmap</span>
+        <span class="pill">🚌 Fleet right-sizing</span>
+        <span class="pill">💰 Cost-per-rider</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="phone-box reveal">
+    <div class="card">
+      <div style="flex:1;min-width:240px">
+        <h3 style="font-size:19px;letter-spacing:-.02em;margin-bottom:6px">Demo on a phone</h3>
+        <p class="muted">Join the same Wi-Fi as this laptop, then open the address on the right in the phone's browser.</p>
+      </div>
+      <div id="ips"><code class="url">looking up…</code></div>
+    </div>
+  </section>
+
+  <div class="ctafoot reveal">
+    <a class="btn neon" href="/">Sign in and ride →</a>
+  </div>
+
+  <footer>Built by SP Jain students · works for any campus, shuttle, or gated community — brand, fleet and prices are all configuration.</footer>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/nova-bg.js" data-dim="0.7"></script>
+<script>
+fetch('/api/info').then(r => r.json()).then(i => {
+  document.getElementById('ips').innerHTML = i.ips.length
+    ? i.ips.map(ip => `<code class="url">http://${ip}:${i.port}/pass.html</code>`).join('<br>')
+    : '<code class="url">single-laptop mode</code>';
+}).catch(() => {});
+const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

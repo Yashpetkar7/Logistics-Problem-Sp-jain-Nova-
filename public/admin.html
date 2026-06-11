@@ -11,34 +11,34 @@
   .gate {
     position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
     background:
-      radial-gradient(800px 500px at 10% 0%, rgba(142,92,247,.12), transparent 60%),
-      radial-gradient(800px 500px at 90% 100%, rgba(10,132,255,.12), transparent 60%),
-      var(--bg);
+      radial-gradient(800px 500px at 10% 0%, rgba(142,92,247,.16), transparent 60%),
+      radial-gradient(800px 500px at 90% 100%, rgba(10,132,255,.16), transparent 60%),
+      #050510;
   }
   .gate .card { width: min(380px, 90vw); padding: 30px; }
   .gate .logo { width: 52px; height: 52px; border-radius: 15px; font-size: 24px; margin: 0 auto 16px; }
-  .gate h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 4px; }
+  .gate h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 4px; color: #fff; }
   .gate p { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
-  .err { color: var(--bad); font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
+  .err { color: #ff6961; font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
   .hint { text-align: center; margin-top: 14px; font-size: 13px; color: var(--muted); }
 
   .head { display: flex; align-items: center; gap: 12px; padding: 26px 0 20px; }
-  .head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; }
+  .head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; color: #fff; }
   .head .sub { font-size: 13px; color: var(--muted); }
   .head .out { margin-left: auto; }
 
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .stat { border-radius: 18px; padding: 18px; }
   .stat b { font-size: 28px; display: block; letter-spacing: -.03em; }
-  .stat span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+  .stat span { font-size: 12.5px; font-weight: 500; }
 
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
-  .card h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; }
+  .card h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: #fff; }
   canvas { width: 100%; height: 190px; }
   .scroll { max-height: 330px; overflow: auto; }
   .stulist img { width: 32px; height: 32px; border-radius: 9px; vertical-align: middle; margin-right: 9px; }
-  .pin { font-family: ui-monospace, 'SF Mono', Consolas, monospace; background: rgba(0,0,0,.05); padding: 2px 8px; border-radius: 6px; font-size: 13px; }
+  .pin { font-family: ui-monospace, 'SF Mono', Consolas, monospace; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
   .cardlink { color: var(--accent); cursor: pointer; font-weight: 600; font-size: 13px; }
   .enroll input, .enroll select { margin-bottom: 12px; }
   input[type=file] { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
@@ -48,13 +48,14 @@
   .livedot i { width:8px; height:8px; border-radius:50%; background: var(--good); animation: lpulse 1.6s infinite; }
   @keyframes lpulse { 0%,100% { box-shadow:0 0 0 0 rgba(52,199,89,.5) } 70% { box-shadow:0 0 0 6px rgba(52,199,89,0) } }
   .auditlist { font-size: 13px; }
-  .auditlist div { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+  .auditlist div { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; gap: 10px; }
   .auditlist div:last-child { border-bottom: 0; }
   .auditlist .t { color: var(--muted); flex: none; width: 64px; }
   .auditlist b { font-weight: 600; }
 </style>
 </head>
-<body>
+<body class="dark-app">
+<div class="bgveil"></div>
 
 <div class="gate" id="gate">
   <div class="card" id="gatecard">
@@ -163,6 +164,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="vendor/three.min.js"></script>
+<script src="vendor/nova-bg.js" data-dim="0.4"></script>
 <script>
 let TOKEN = localStorage.getItem('nova_admin') || '';
 const $ = id => document.getElementById(id);
@@ -259,7 +262,7 @@ function drawChart(perTrip) {
   if (!perTrip.length) return;
   const max = Math.max(8, ...perTrip.map(t => t.green + t.red));
   const baseY = 320, top = 30;
-  ctx.strokeStyle = 'rgba(0,0,0,.07)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = baseY - (i / 4) * (baseY - top);
     ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(660, y); ctx.stroke();
@@ -272,9 +275,9 @@ function drawChart(perTrip) {
     if (gh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh, bw, gh, [6, 6, 0, 0]); ctx.fill(); }
     ctx.fillStyle = '#ff3b30';
     if (rh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh - rh, bw, rh, [6, 6, 6, 6]); ctx.fill(); }
-    ctx.fillStyle = '#1d1d1f'; ctx.font = '600 17px -apple-system, Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff'; ctx.font = '600 17px -apple-system, Segoe UI'; ctx.textAlign = 'center';
     if (t.green + t.red) ctx.fillText(t.green + (t.red ? '+' + t.red : ''), x + bw / 2, baseY - gh - rh - 10);
-    ctx.fillStyle = '#86868b'; ctx.font = '500 14px -apple-system, Segoe UI';
+    ctx.fillStyle = '#9a9aac'; ctx.font = '500 14px -apple-system, Segoe UI';
     ctx.fillText(t.label, x + bw / 2, 352);
   });
 }
@@ -380,7 +383,7 @@ async function loadAnalytics() {
     const pct = Math.round(100 * n / totC);
     return `<div style="margin:12px 0">
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px"><span>${l}</span><b>${n} · ${pct}%</b></div>
-      <div style="height:8px;border-radius:5px;background:rgba(0,0,0,.06);overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:5px"></div></div></div>`;
+      <div style="height:8px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:5px"></div></div></div>`;
   }).join('');
 
   $('busiest').querySelector('tbody').innerHTML = a.busiest.filter(t => t.boarded > 0).map(t =>

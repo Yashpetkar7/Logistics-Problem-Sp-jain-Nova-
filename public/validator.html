@@ -80,7 +80,8 @@
   .simrow select { width: auto; background: #161618; color: #c8c8cf; border-color: #2c2c30; border-radius: 980px; padding: 8px 14px; font-size: 13px; }
 </style>
 </head>
-<body>
+<body class="dark-app">
+<div class="bgveil"></div>
 <div class="wrap">
   <div class="bar">
     <div class="brandline"><span class="logo">N</span><div><b>Validator</b><span>at the door · driver just glances</span></div></div>
@@ -131,6 +132,8 @@
   <p class="hint"><b style="color:#c8c8cf">Card lane:</b> plug any USB RFID reader into this device — it types the card UID like a keyboard, no drivers, and taps land instantly. On an Android validator, NFC stickers also tap straight onto the back of the device. Anti-passback is on: one green per trip — a second tap goes red. Press "End trip" when the bus departs. · <a href="#" onclick="pairDevice();return false" style="color:#0a84ff;text-decoration:none">⚙ device key</a></p>
 </div>
 
+<script src="vendor/three.min.js"></script>
+<script src="vendor/nova-bg.js" data-dim="0.35"></script>
 <script src="vendor/jsQR.js"></script>
 <script>
 let BUS = 'Bus 1', busy = false, lastSeen = '', lastSeenAt = 0;

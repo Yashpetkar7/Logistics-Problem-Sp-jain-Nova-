@@ -1,8 +1,8 @@
 /* Nova Shuttle service worker — lets the pass install to the home screen
    and open offline, while always getting the freshest page when online.
    The pass code itself is fetched live (never cached) so a stale QR can't board. */
-const SHELL = 'nova-shell-v3';
-const ASSETS = ['/pass.html', '/style.css', '/icon.svg', '/vendor/qrcode.min.js'];
+const SHELL = 'nova-shell-v4';
+const ASSETS = ['/pass.html', '/style.css', '/icon.svg', '/vendor/qrcode.min.js', '/vendor/three.min.js', '/vendor/nova-bg.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

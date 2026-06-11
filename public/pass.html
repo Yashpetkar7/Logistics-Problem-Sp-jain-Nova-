@@ -6,28 +6,22 @@
 <title>My Nova Pass</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#101014">
+<meta name="theme-color" content="#050510">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Nova Pass">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="style.css">
 <style>
-  body {
-    background:
-      radial-gradient(900px 500px at 0% -10%, rgba(10,132,255,.10), transparent 60%),
-      radial-gradient(800px 500px at 110% 20%, rgba(142,92,247,.10), transparent 60%),
-      var(--bg);
-  }
   .wrap { max-width: 470px; padding-top: 18px; }
 
   /* sign-in */
   .auth { margin-top: 9vh; }
   .auth .logo { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; margin: 0 auto 18px; }
-  .auth h1 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; }
+  .auth h1 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; color: #fff; }
   .auth .sub { text-align: center; color: var(--muted); margin: 8px 0 26px; font-size: 15px; }
   .auth .card { padding: 28px; }
-  .err { color: var(--bad); font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
+  .err { color: #ff6961; font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
   .hint { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
 
   /* wallet card — 3D tilt with a moving light sheen */
@@ -83,36 +77,41 @@
 
   /* below-card sections */
   .panel { margin-top: 16px; }
-  .panel h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; }
+  .panel h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: #fff; }
   .runs { display: flex; gap: 10px; }
-  .run { flex: 1; text-align: center; background: rgba(0,113,227,.06); border-radius: 16px; padding: 14px 6px 12px; }
-  .run b { font-size: 19px; display: block; letter-spacing: -.02em; }
+  .run { flex: 1; text-align: center; background: rgba(10,132,255,.12); border-radius: 16px; padding: 14px 6px 12px; }
+  .run b { font-size: 19px; display: block; letter-spacing: -.02em; color: #fff; }
   .run span { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-  .seatbar { height: 7px; border-radius: 4px; background: rgba(0,0,0,.07); overflow: hidden; margin-top: 12px; }
+  .seatbar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 12px; }
   .seatbar > div { height: 100%; border-radius: 4px; background: var(--good); transition: width .5s; }
 
   .buy { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   .buy button {
-    border: 1.5px solid var(--line); background: #fff; border-radius: 16px;
+    border: 1.5px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); border-radius: 16px;
     padding: 16px 6px 13px; cursor: pointer; font: inherit;
     transition: transform .15s, border-color .15s, box-shadow .15s;
   }
-  .buy button:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,113,227,.12); }
-  .buy b { display: block; font-size: 19px; letter-spacing: -.02em; color: var(--ink); }
+  .buy button:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(10,132,255,.25); }
+  .buy b { display: block; font-size: 19px; letter-spacing: -.02em; color: #fff; }
   .buy span { font-size: 12px; color: var(--muted); font-weight: 600; }
 
   .track svg { width: 100%; height: 70px; display: block; }
+  .track line { stroke: rgba(255,255,255,.12) !important; }
   .signout { text-align: center; margin-top: 22px; }
   .signout a { color: var(--muted); font-size: 13px; text-decoration: none; }
-  .signout a:hover { color: var(--bad); }
+  .signout a:hover { color: #ff6961; }
+  .wallet { border: 1px solid rgba(255,255,255,.1); }
+  .tapcard { border: 1px solid rgba(142,92,247,.35); }
 
   /* add-to-phone (wallet) */
   .wallet-btn {
     width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 9px;
-    background: #000; color: #fff; border: 0; border-radius: 16px; padding: 15px;
+    background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px; padding: 15px; backdrop-filter: blur(8px);
     font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: transform .18s var(--spring), box-shadow .2s;
+    transition: transform .18s var(--spring), box-shadow .2s, border-color .2s;
   }
+  .wallet-btn:hover { border-color: rgba(255,255,255,.34); }
   .wallet-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.25); }
   .wallet-btn svg { width: 20px; height: 20px; }
   .installed { text-align:center; margin-top:14px; font-size:13px; color: var(--good-deep); font-weight:600; }
@@ -142,40 +141,42 @@
   .chat {
     position: fixed; right: 16px; bottom: 90px; z-index: 150;
     width: min(370px, calc(100vw - 32px)); height: min(520px, 70vh);
-    background: #fff; border-radius: 24px; border: 1px solid var(--line);
-    box-shadow: var(--shadow-lift);
+    background: rgba(16, 16, 28, .92); border-radius: 24px; border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 30px 80px rgba(0,0,0,.6); backdrop-filter: blur(18px);
     display: flex; flex-direction: column; overflow: hidden;
     opacity: 0; pointer-events: none; transform: translateY(16px) scale(.97);
     transition: opacity .25s, transform .3s var(--ease);
   }
   .chat.open { opacity: 1; pointer-events: auto; transform: none; }
-  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--bg-soft); }
-  .chat .chead b { font-size: 15px; }
-  .chat .chead span { font-size: 12px; color: var(--good-deep); font-weight: 600; }
+  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .chat .chead b { font-size: 15px; color: #fff; }
+  .chat .chead span { font-size: 12px; color: #34c759; font-weight: 600; }
   .chat .msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.45; white-space: pre-line; }
-  .msg.bot { background: rgba(0, 0, 0, .055); color: var(--ink); border-bottom-left-radius: 6px; align-self: flex-start; }
+  .msg.bot { background: rgba(255,255,255,.09); color: #ecedf3; border-bottom-left-radius: 6px; align-self: flex-start; }
   .msg.me { background: var(--accent); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
-  .msg.typing { color: var(--muted); letter-spacing: 2px; }
+  .msg.typing { color: #8a8a9e; letter-spacing: 2px; }
   .chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
-  .qchip { background: rgba(0,113,227,.09); color: var(--accent-deep); border: 1px solid rgba(0,113,227,.25); border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
-  .qchip:hover { background: rgba(0,113,227,.16); }
-  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
-  .chat .cinput input { border-radius: 980px; padding: 11px 16px; font-size: 14.5px; }
+  .qchip { background: rgba(10,132,255,.16); color: #8fc1ff; border: 1px solid rgba(10,132,255,.4); border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .qchip:hover { background: rgba(10,132,255,.3); }
+  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .chat .cinput input { flex: 1; border-radius: 980px; padding: 11px 16px; font-size: 14.5px; }
   .chat .cinput button { border: 0; background: var(--accent); color: #fff; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; }
 
   /* iOS instruction sheet */
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); opacity:0; pointer-events:none; transition:.3s; z-index: 200; }
   .sheet-bg.show { opacity:1; pointer-events:auto; }
-  .sheet { position: fixed; left:0; right:0; bottom:0; background:#fff; border-radius: 26px 26px 0 0; padding: 26px 24px 34px; max-width: 470px; margin: 0 auto; transform: translateY(110%); transition: transform .4s var(--ease); z-index: 201; }
+  .sheet { position: fixed; left:0; right:0; bottom:0; background:#16161f; border: 1px solid rgba(255,255,255,.12); border-bottom: 0; border-radius: 26px 26px 0 0; padding: 26px 24px 34px; max-width: 470px; margin: 0 auto; transform: translateY(110%); transition: transform .4s var(--ease); z-index: 201; }
   .sheet.show { transform: none; }
-  .sheet h3 { font-size: 20px; letter-spacing: -.02em; margin-bottom: 6px; }
+  .sheet h3 { font-size: 20px; letter-spacing: -.02em; margin-bottom: 6px; color: #fff; }
+  .sheet li { color: #d6d7e2; }
   .sheet ol { margin: 16px 0 0 0; padding-left: 0; list-style: none; counter-reset: s; }
   .sheet li { counter-increment: s; position: relative; padding: 10px 0 10px 44px; font-size: 15px; }
   .sheet li::before { content: counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:50%; background: var(--accent); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
 </style>
 </head>
-<body>
+<body class="dark-app">
+<div class="bgveil"></div>
 <div class="wrap">
 
   <!-- sign in -->
@@ -293,6 +294,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="vendor/three.min.js"></script>
+<script src="vendor/nova-bg.js" data-dim="0.55"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script>
 let TOKEN = localStorage.getItem('nova_token') || '';
@@ -382,14 +385,24 @@ async function refresh() {
   LAST = d;
   secondsLeft = d.secondsLeft; slotSeconds = d.slotSeconds;
   if (d.payload !== lastPayload) { lastPayload = d.payload; drawQr(d.payload); }
+  $('cardpanel').style.display = '';            // RFID is a first-class lane — always visible
   if (d.card && d.card.uid) {
-    $('cardpanel').style.display = '';
     $('carduid').textContent = 'UID ' + d.card.uid;
     const blocked = d.card.status === 'blocked';
     $('cardstatus').textContent = blocked ? 'Blocked' : 'Active';
     $('cardstatus').className = 'chip ' + (blocked ? 'bad' : 'good');
+    $('lostlink').textContent = 'Lost your card? Block it instantly';
+    $('lostlink').onclick = reportLost;
     $('lostlink').style.display = blocked ? 'none' : '';
-  } else $('cardpanel').style.display = 'none';
+  } else {
+    $('carduid').textContent = 'Tap the reader at the door — no phone needed';
+    $('cardstatus').textContent = 'Get yours';
+    $('cardstatus').className = 'chip info';
+    $('lostlink').textContent = 'Ask at the logistics office — it\'s a sticker on your student card';
+    $('lostlink').onclick = null;
+    $('lostlink').style.display = '';
+    $('lostlink').style.color = 'var(--muted)';
+  }
   $('status').textContent = d.status.label + ' · ' + d.status.detail;
   $('seats').textContent = d.seatsLeft; $('cap').textContent = d.capacity;
   $('seatfill').style.width = (100 * d.seatsLeft / d.capacity) + '%';

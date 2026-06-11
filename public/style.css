@@ -180,3 +180,53 @@ tr:last-child td { border-bottom: 0; }
 .shake { animation: shake .5s; }
 
 ::selection { background: rgba(0, 113, 227, .2); }
+
+/* ============================================================
+   DARK APP THEME — one futuristic world across every page.
+   Pages opt in with <body class="dark-app"> and the shared
+   3D background (vendor/nova-bg.js) renders behind everything.
+   ============================================================ */
+body.dark-app { background: #050510; color: #f2f3f7; }
+body.dark-app ::selection { background: rgba(10, 132, 255, .4); }
+#novabg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+body.dark-app .bgveil { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(1100px 560px at 50% -5%, rgba(10,132,255,.12), transparent 60%),
+              linear-gradient(180deg, transparent 60%, rgba(5,5,16,.85) 100%); }
+body.dark-app .wrap, body.dark-app .nav, body.dark-app .gate { position: relative; z-index: 2; }
+
+body.dark-app .nav { background: rgba(5,5,16,.6); border-bottom: 1px solid rgba(255,255,255,.07); }
+body.dark-app .nav .brand b { color: #fff; }
+body.dark-app .nav a.link { color: #9a9aac; }
+body.dark-app .nav a.link:hover { color: #fff; background: rgba(255,255,255,.07); }
+
+body.dark-app .card, body.dark-app .tile, body.dark-app .stat, body.dark-app .feat {
+  background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 20px 60px rgba(0,0,0,.45); backdrop-filter: blur(12px);
+}
+body.dark-app .muted, body.dark-app .tile .k, body.dark-app .stat span { color: #9a9aac; }
+body.dark-app .tile .v, body.dark-app .stat b { color: #fff; }
+
+body.dark-app input[type=text], body.dark-app input[type=password], body.dark-app select {
+  background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.14); color: #fff;
+}
+body.dark-app input::placeholder { color: #7a7a8e; }
+body.dark-app input:focus, body.dark-app select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(10,132,255,.18); }
+body.dark-app .field label { color: #9a9aac; }
+body.dark-app input[type=file] { color: #9a9aac; }
+
+body.dark-app th { color: #8a8a9e; border-bottom-color: rgba(255,255,255,.1); }
+body.dark-app td { border-bottom-color: rgba(255,255,255,.07); }
+body.dark-app .pin { background: rgba(255,255,255,.09); color: #d6d7e2; }
+
+body.dark-app .chip.good { background: rgba(52,199,89,.18); color: #4cd964; }
+body.dark-app .chip.bad { background: rgba(255,69,58,.18); color: #ff6961; }
+body.dark-app .chip.info { background: rgba(10,132,255,.18); color: #8fc1ff; }
+body.dark-app .chip.warn { background: rgba(255,159,10,.2); color: #ffb340; }
+
+body.dark-app .tabs { background: rgba(255,255,255,.08); }
+body.dark-app .tabs button { color: #cacade; }
+body.dark-app .tabs button.active { background: rgba(255,255,255,.16); color: #fff; box-shadow: none; }
+
+body.dark-app .btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.18); }
+body.dark-app .btn.ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.32); }
+body.dark-app h2.section, body.dark-app .head h1 { color: #fff; }

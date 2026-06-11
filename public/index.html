@@ -8,90 +8,62 @@
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
 <link rel="stylesheet" href="style.css">
 <style>
-  /* ---- dark futuristic theme (this page only) ---- */
+  /* the front door: one scene, one headline, one sign-in */
   body { background: #050510; color: #f2f3f7; overflow-x: hidden; }
   ::selection { background: rgba(10,132,255,.4); }
-
   #scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
   .veil { position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background: radial-gradient(1200px 600px at 50% -5%, rgba(10,132,255,.14), transparent 60%),
-                linear-gradient(180deg, transparent 55%, #050510 96%); }
-  .wrap, .nav { position: relative; z-index: 2; }
+                linear-gradient(180deg, transparent 50%, rgba(5,5,16,.9) 100%); }
+  .nav, .stagewrap { position: relative; z-index: 2; }
 
   .nav { background: rgba(5,5,16,.55); border-bottom: 1px solid rgba(255,255,255,.07); }
+  .nav .brand b { color: #fff; }
   .nav a.link { color: #9a9aac; }
   .nav a.link:hover { color: #fff; background: rgba(255,255,255,.07); }
-  .nav .brand b { color: #fff; }
-  .nav .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700;
-    color: #34c759; border: 1px solid rgba(52,199,89,.35); border-radius: 980px; padding: 5px 12px; }
-  .nav .live i { width: 8px; height: 8px; border-radius: 50%; background: #34c759; animation: pulse 1.6s infinite; }
+  .nav .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
+    color: #34c759; border: 1px solid rgba(52,199,89,.35); border-radius: 980px; padding: 4px 11px; }
+  .nav .live i { width: 7px; height: 7px; border-radius: 50%; background: #34c759; animation: pulse 1.6s infinite; }
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(52,199,89,.55) } 70% { box-shadow: 0 0 0 7px rgba(52,199,89,0) } }
 
-  .hero { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 60px 0 30px; }
-  .hero .eyebrow { color: #6ea8ff; letter-spacing: .14em; }
-  h1.display { font-size: clamp(46px, 8.4vw, 96px); color: #fff; text-shadow: 0 0 60px rgba(10,132,255,.25); }
-  .hero .lede { color: #b9bac8; max-width: 660px; margin: 24px auto 0; }
-  .hero .cta { margin-top: 38px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .btn.neon { background: linear-gradient(92deg, #0a84ff, #8e5cf7); box-shadow: 0 0 32px rgba(10,132,255,.45); }
-  .btn.neon:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 0 48px rgba(108,92,247,.6); }
-  .btn.glass { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(10px); }
-  .btn.glass:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
-  .scrollcue { margin-top: 64px; color: #6a6a7e; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; animation: bob 2.4s ease-in-out infinite; }
-  @keyframes bob { 50% { transform: translateY(7px) } }
+  .stagewrap { min-height: calc(100vh - 61px); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 40px 22px 60px; }
+  .eyebrow { color: #6ea8ff; letter-spacing: .14em; font-size: 12.5px; font-weight: 700; text-transform: uppercase; }
+  h1.display { font-size: clamp(40px, 7vw, 76px); color: #fff; margin-top: 14px;
+    text-shadow: 0 0 60px rgba(10,132,255,.25); }
+  .sub { color: #b9bac8; font-size: clamp(16px, 2vw, 19px); margin-top: 14px; }
 
-  /* live stats band */
-  .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-top: 4vh; text-align: center; }
-  .band .s { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.09); border-radius: 20px; padding: 22px 10px 18px; backdrop-filter: blur(8px); }
-  .band .s b { font-size: clamp(30px,4.6vw,44px); font-weight: 700; letter-spacing: -.03em;
-    background: linear-gradient(92deg,#5ad7ff,#8e9bff,#c77dff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .band .s span { display: block; color: #9a9aac; font-size: 13.5px; margin-top: 3px; }
+  /* sign-in hub — the only thing on the front door */
+  .hub { width: min(420px, 94vw); margin-top: 38px;
+    background: rgba(16,16,28,.72); border: 1px solid rgba(255,255,255,.13);
+    border-radius: 26px; backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 30px 90px rgba(0,0,0,.6); padding: 22px 22px 20px; text-align: left; }
+  .seg { display: flex; background: rgba(255,255,255,.07); border-radius: 14px; padding: 4px; gap: 2px; margin-bottom: 18px; }
+  .seg button { flex: 1; border: 0; background: transparent; color: #9a9aac; font: inherit;
+    font-size: 14px; font-weight: 600; padding: 10px 0; border-radius: 10px; cursor: pointer; transition: .2s; }
+  .seg button.active { background: rgba(255,255,255,.14); color: #fff; }
+  .hub .field label { color: #9a9aac; }
+  .hub input { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.14); color: #fff; }
+  .hub input::placeholder { color: #7a7a8e; }
+  .hub .err { color: #ff6961; font-size: 13.5px; min-height: 18px; margin: 4px 2px; font-weight: 500; }
+  .btn.neon { width: 100%; background: linear-gradient(92deg, #0a84ff, #8e5cf7);
+    box-shadow: 0 0 28px rgba(10,132,255,.4); }
+  .btn.neon:hover { transform: translateY(-1px); box-shadow: 0 0 44px rgba(108,92,247,.55); }
+  .hub .hint { text-align: center; font-size: 12.5px; color: #7a7a8e; margin-top: 12px; }
+  .kioskpane { text-align: center; padding: 8px 0 4px; }
+  .kioskpane .big { font-size: 40px; }
+  .kioskpane p { color: #9a9aac; font-size: 14px; margin: 8px 0 16px; }
 
-  /* glass role cards with 3D tilt */
-  .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 18px; margin-top: 72px; perspective: 1100px; }
-  .role { text-decoration: none; color: inherit; }
-  .role .card { height: 100%; padding: 30px 26px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
-    border-radius: 24px; backdrop-filter: blur(12px); box-shadow: 0 20px 60px rgba(0,0,0,.45);
-    transition: border-color .25s, box-shadow .25s; transform-style: preserve-3d; will-change: transform; }
-  .role .card:hover { border-color: rgba(110,168,255,.5); box-shadow: 0 28px 80px rgba(10,40,140,.45); }
-  .role .icon { width: 56px; height: 56px; border-radius: 17px; font-size: 27px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 18px; transform: translateZ(34px); }
-  .role h3 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; color: #fff; transform: translateZ(26px); }
-  .role p { color: #a9aabb; font-size: 15px; transform: translateZ(18px); }
-  .role .go { display: inline-block; margin-top: 16px; color: #6ea8ff; font-weight: 600; font-size: 15px; transform: translateZ(22px); }
+  .learn { margin-top: 26px; }
+  .learn a { color: #6ea8ff; text-decoration: none; font-size: 14.5px; font-weight: 600; }
+  .learn a:hover { text-decoration: underline; }
+  footer { position: relative; z-index: 2; text-align: center; color: #5a5a6e;
+    font-size: 12.5px; padding: 0 20px 26px; }
 
-  .strip { margin-top: 110px; text-align: center; }
-  h2.section { color: #fff; }
-  .strip .lede { color: #a9aabb; }
-  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 36px; text-align: left; }
-  .feat { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.09); border-radius: 18px; padding: 22px; transition: transform .25s var(--ease), border-color .25s; }
-  .feat:hover { transform: translateY(-5px); border-color: rgba(110,168,255,.4); }
-  .feat .e { font-size: 24px; }
-  .feat b { display: block; margin: 10px 0 4px; font-size: 16px; color: #fff; }
-  .feat span { color: #a9aabb; font-size: 14px; }
+  @keyframes shake { 10%,90% { transform: translateX(-2px) } 20%,80% { transform: translateX(4px) } 30%,70% { transform: translateX(-7px) } 50% { transform: translateX(7px) } }
+  .shake { animation: shake .5s; }
 
-  .logi { margin-top: 110px; }
-  .logi .card { padding: 44px; background: linear-gradient(135deg, rgba(11,16,32,.9), rgba(26,19,64,.9)); color: #fff;
-    border: 1px solid rgba(142,92,247,.3); border-radius: 28px; position: relative; overflow: hidden; backdrop-filter: blur(10px); }
-  .logi .card::after { content:''; position:absolute; width:420px; height:420px; border-radius:50%;
-    background: radial-gradient(circle, rgba(142,92,247,.35), transparent 70%); top:-140px; right:-90px; }
-  .logi h2 { font-size: clamp(24px,3.6vw,36px); letter-spacing: -.03em; position: relative; }
-  .logi p { color: rgba(255,255,255,.72); max-width: 580px; margin-top: 12px; position: relative; }
-  .logi .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; position: relative; }
-  .logi .pill { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); padding: 9px 15px; border-radius: 980px; font-size: 13px; font-weight: 600; }
-
-  /* the convenience story — three steps, two seconds */
-  .steps { margin-top: 64px; text-align: center; }
-  .steps .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 34px; text-align: left; }
-  .step { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; padding: 26px; backdrop-filter: blur(10px); position: relative; }
-  .step .n { font-size: 44px; font-weight: 800; letter-spacing: -.04em; line-height: 1;
-    background: linear-gradient(135deg, #5ad7ff, #8e9bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .step b { display: block; font-size: 18px; color: #fff; margin: 14px 0 6px; letter-spacing: -.01em; }
-  .step span { color: #a9aabb; font-size: 14.5px; }
-  .steps .tagline { margin-top: 26px; color: #8a8a9e; font-size: 15px; }
-  .steps .tagline b { color: #fff; }
-
-  /* Nova assistant — guest mode, dark glass */
+  /* Nova assistant — guest mode */
   .chatfab { position: fixed; right: 20px; bottom: 20px; z-index: 150;
     width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer;
     background: linear-gradient(135deg, #0a84ff, #8e5cf7); color: #fff; font-size: 26px;
@@ -124,14 +96,6 @@
   .chat .cinput input::placeholder { color: #7a7a8e; }
   .chat .cinput input:focus { border-color: var(--accent); }
   .chat .cinput button { border: 0; background: var(--accent); color: #fff; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; }
-
-  .phone-box { margin-top: 100px; }
-  .phone-box .card { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; padding: 30px;
-    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 24px; backdrop-filter: blur(10px); }
-  .phone-box h3 { color: #fff; }
-  .phone-box .muted { color: #a9aabb; }
-  code.url { background: rgba(10,132,255,.14); color: #8fc1ff; padding: 6px 14px; border-radius: 10px; font-size: 15px; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
-  footer { margin-top: 110px; padding-bottom: 30px; text-align: center; color: #6a6a7e; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -142,101 +106,56 @@
   <a class="brand" href="/"><span class="logo">N</span><b id="brand">Nova Shuttle</b></a>
   <span class="live"><i></i><span id="livestat">LIVE</span></span>
   <span class="spacer"></span>
-  <a class="link" href="pass.html">Student</a>
-  <a class="link" href="validator.html">Validator</a>
-  <a class="link" href="admin.html">Admin</a>
+  <a class="link" href="about.html">How it works</a>
 </div></nav>
 
-<div class="wrap">
-  <section class="hero">
-    <span class="eyebrow">SHUTTLE ACCESS · REIMAGINED</span>
-    <h1 class="display">One tap.<br><span class="grad">Green light. Go.</span></h1>
-    <p class="lede">The boarding platform for <span id="org">SP Jain · Nova Towers</span>. Riders prove themselves in two seconds, drivers never check a card, and every seat becomes live data.</p>
-    <div class="cta">
-      <a class="btn neon" href="pass.html">Open my pass</a>
-      <a class="btn glass" href="admin.html">Logistics console</a>
+<div class="stagewrap">
+  <span class="eyebrow">Campus shuttle · reimagined</span>
+  <h1 class="display">One tap.<br><span class="grad">Green light. Go.</span></h1>
+  <p class="sub">Show your code or tap your card. Two seconds, you're aboard.</p>
+
+  <!-- the sign-in hub -->
+  <div class="hub" id="hub">
+    <div class="seg">
+      <button class="active" id="seg-student" onclick="setRole('student')">Student</button>
+      <button id="seg-staff" onclick="setRole('staff')">Staff</button>
+      <button id="seg-kiosk" onclick="setRole('kiosk')">Kiosk</button>
     </div>
-    <div class="scrollcue">▼ scroll</div>
-  </section>
 
-  <section class="steps reveal">
-    <h2 class="section">Three steps. Two seconds.</h2>
-    <p class="lede" style="margin-top:10px">No tickets. No cash. No queues. Built for convenience first.</p>
-    <div class="grid3">
-      <div class="step"><div class="n">01</div><b>Open your pass</b><span>It lives on your home screen like an app — one tap and your live code is up. Phone dead? Your tap card or a manual check-in still boards you.</span></div>
-      <div class="step"><div class="n">02</div><b>Show it at the door</b><span>Hold the QR to the validator, or tap your card on the reader. Tap the code for fullscreen boarding mode — the screen stays awake for you.</span></div>
-      <div class="step"><div class="n">03</div><b>Green light. Go.</b><span>The driver just glances. You're aboard before your friend finds their old paper card.</span></div>
+    <div id="pane-student">
+      <div class="field"><label>Student ID</label>
+        <input type="text" id="sid" placeholder="NS-101" autocomplete="off" autocapitalize="characters">
+      </div>
+      <div class="field"><label>PIN</label>
+        <input type="password" id="pin" placeholder="••••" inputmode="numeric" maxlength="6">
+      </div>
+      <div class="err" id="err"></div>
+      <button class="btn neon" onclick="studentLogin()">Open my pass</button>
+      <p class="hint">Sign in once — your pass stays on this phone. PIN comes from the logistics office.</p>
     </div>
-    <p class="tagline">Riders do <b>less</b> than before — that's the whole point. The security runs invisibly underneath.</p>
-  </section>
 
-  <section class="band reveal">
-    <div class="s"><b id="st-board">—</b><span>boardings today · live</span></div>
-    <div class="s"><b>2s</b><span>to board, per rider</span></div>
-    <div class="s"><b>0</b><span>cards checked by hand</span></div>
-    <div class="s"><b>6</b><span>layered guardrails</span></div>
-  </section>
-
-  <section class="roles">
-    <a class="role reveal" href="pass.html"><div class="card tilt">
-      <div class="icon" style="background:rgba(10,132,255,.18)">📱</div>
-      <h3>Student pass</h3>
-      <p>A live QR pass that refreshes every 30 seconds, installs to the phone like an app, shows next shuttles and seats — with a built-in assistant.</p>
-      <span class="go">Sign in →</span>
-    </div></a>
-    <a class="role reveal" href="validator.html"><div class="card tilt">
-      <div class="icon" style="background:rgba(52,199,89,.16)">💳</div>
-      <h3>Bus validator</h3>
-      <p>RFID card lane first: plug in any USB reader and taps just work. QR camera lane one tap away. Green or red with the rider's photo, instantly.</p>
-      <span class="go">Open kiosk →</span>
-    </div></a>
-    <a class="role reveal" href="admin.html"><div class="card tilt">
-      <div class="icon" style="background:rgba(142,92,247,.18)">📊</div>
-      <h3>Logistics console</h3>
-      <p>Live boarding feed, demand heatmap, fleet recommendations, card kill-switch, audit trail — the whole operation on one screen.</p>
-      <span class="go">Sign in →</span>
-    </div></a>
-  </section>
-
-  <section class="strip reveal">
-    <h2 class="section">Why nobody sneaks past it</h2>
-    <p class="lede" style="margin-top:10px">Six guardrails, layered. Cheating becomes harder than paying.</p>
-    <div class="feats">
-      <div class="feat reveal"><span class="e">🔄</span><b>Rotating codes</b><span>The QR re-generates every 30 seconds — screenshots die before they reach a friend.</span></div>
-      <div class="feat reveal"><span class="e">🪪</span><b>Photo on every scan</b><span>The owner's photo flashes to the driver. A borrowed pass shows the wrong face.</span></div>
-      <div class="feat reveal"><span class="e">🚫</span><b>Anti-passback</b><span>One green per student per trip. The phone passed back through the window scans red.</span></div>
-      <div class="feat reveal"><span class="e">🔐</span><b>Card kill switch</b><span>Lost RFID card? Blocked in one message — every bus rejects it instantly.</span></div>
-      <div class="feat reveal"><span class="e">🛡️</span><b>Hardened backend</b><span>Hashed PINs, expiring sessions, rate-limited logins, device-keyed validators, audit trail.</span></div>
-      <div class="feat reveal"><span class="e">🧾</span><b>Everything logged</b><span>Every green and red lands in the console live, with a reason. Enforcement moves to the office.</span></div>
+    <div id="pane-staff" style="display:none">
+      <div class="field"><label>Console password</label>
+        <input type="password" id="apw" placeholder="••••••••">
+      </div>
+      <div class="err" id="aerr"></div>
+      <button class="btn neon" onclick="staffLogin()">Open the console</button>
+      <p class="hint">Live boarding feed, demand analytics, cards &amp; enrollment.</p>
     </div>
-  </section>
 
-  <section class="logi reveal">
-    <div class="card">
-      <span class="eyebrow" style="color:#8ab4ff">NOT JUST A TURNSTILE</span>
-      <h2 style="margin-top:10px">Every tap is a logistics decision.</h2>
-      <p>Boardings stream into a demand heatmap the moment they happen. Nova turns them into fleet recommendations — add a bus at the 8:30 rush, stretch the quiet 2pm run — so the shuttle costs less and waits shorter.</p>
-      <div class="pills">
-        <span class="pill">📡 Real-time event stream</span>
-        <span class="pill">📈 Demand heatmap</span>
-        <span class="pill">🚌 Fleet right-sizing</span>
-        <span class="pill">💰 Cost-per-rider</span>
+    <div id="pane-kiosk" style="display:none">
+      <div class="kioskpane">
+        <div class="big">💳</div>
+        <p>The validator at the bus door — RFID tap lane and QR camera. Runs on any phone or tablet.</p>
+        <button class="btn neon" onclick="location.href='validator.html'">Launch validator</button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <section class="phone-box reveal">
-    <div class="card">
-      <div style="flex:1;min-width:240px">
-        <h3 style="font-size:19px;letter-spacing:-.02em;margin-bottom:6px">Demo on a phone</h3>
-        <p class="muted">Join the same Wi-Fi as this laptop, then open the address on the right in the phone's browser.</p>
-      </div>
-      <div id="ips"><code class="url">looking up…</code></div>
-    </div>
-  </section>
-
-  <footer>Built by SP Jain students · works for any campus, shuttle, or gated community — brand, fleet and prices are all configuration.</footer>
+  <div class="learn"><a href="about.html">See how it works — the two-second boarding →</a></div>
 </div>
+
+<footer>Works for any campus, shuttle, or gated community · brand, fleet and prices are configuration</footer>
 
 <button class="chatfab" onclick="toggleChat()">💬</button>
 <div class="chat" id="chat">
@@ -250,7 +169,7 @@
 
 <script src="vendor/three.min.js"></script>
 <script>
-/* ---------- immersive 3D hero: low-poly shuttle over a neon grid ---------- */
+/* ---------- the 3D stage: low-poly shuttle over a neon grid ---------- */
 (function () {
   const canvas = document.getElementById('scene');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -265,18 +184,15 @@
   const cam = new THREE.PerspectiveCamera(52, 1, .1, 100);
   cam.position.set(0, 1.9, 8.6);
 
-  /* lights */
   scene.add(new THREE.AmbientLight(0xffffff, .45));
   const key = new THREE.DirectionalLight(0xffffff, .9); key.position.set(5, 8, 6); scene.add(key);
   const violet = new THREE.PointLight(0x8e5cf7, 1.4, 30); violet.position.set(-5, 3.5, -2); scene.add(violet);
   const cyan = new THREE.PointLight(0x0a84ff, 1.1, 26); cyan.position.set(5, 2, 3); scene.add(cyan);
 
-  /* neon grid floor, scrolling toward the camera */
   const grid = new THREE.GridHelper(160, 90, 0x2b56d8, 0x14163a);
   grid.position.y = -1.15;
   scene.add(grid);
 
-  /* the shuttle — low-poly, built from primitives */
   const bus = new THREE.Group();
   const mat = (c, m, r, e) => new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r, emissive: e || 0x000000, emissiveIntensity: e ? .9 : 0 });
   const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.25, 1.62), mat(0x1565ff, .55, .32));
@@ -300,7 +216,6 @@
   bus.rotation.y = -.42;
   scene.add(bus);
 
-  /* particle field — two layers, blue + violet */
   function stars(n, color, size, spread) {
     const pos = new Float32Array(n * 3);
     for (let i = 0; i < n * 3; i += 3) {
@@ -316,7 +231,6 @@
   const dust1 = stars(420, 0x4f8cff, .075, 56);
   const dust2 = stars(260, 0xb07aff, .06, 48);
 
-  /* mouse parallax */
   let mx = 0, my = 0, tx = 0, ty = 0;
   addEventListener('pointermove', e => {
     tx = (e.clientX / innerWidth - .5) * 1.6;
@@ -325,10 +239,9 @@
 
   let camZ = 8.6;
   function resize() {
-    const w = innerWidth, h = innerHeight;
-    renderer.setSize(w, h, false);
-    cam.aspect = w / h; cam.updateProjectionMatrix();
-    camZ = cam.aspect < .9 ? 13.5 : cam.aspect < 1.4 ? 10.5 : 8.6;   // step back on tall screens
+    renderer.setSize(innerWidth, innerHeight, false);
+    cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+    camZ = cam.aspect < .9 ? 13.5 : cam.aspect < 1.4 ? 10.5 : 8.6;
   }
   addEventListener('resize', resize); resize();
 
@@ -346,60 +259,66 @@
     renderer.render(scene, cam);
     if (!reduced) requestAnimationFrame(frame);
   }
-  frame();   // reduced-motion users get one beautiful still frame
+  frame();
 })();
 
-/* ---------- live data ---------- */
-function fmtN(n) { return n.toLocaleString(); }
+/* ---------- sign-in hub ---------- */
+const $c = id => document.getElementById(id);
+let INFO = null;
+fetch('/api/info').then(r => r.json()).then(i => { INFO = i; $c('brand').textContent = i.brand; }).catch(() => {});
+
+function setRole(r) {
+  ['student', 'staff', 'kiosk'].forEach(x => {
+    $c('pane-' + x).style.display = x === r ? '' : 'none';
+    $c('seg-' + x).classList.toggle('active', x === r);
+  });
+}
+
+async function studentLogin() {
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sid: $c('sid').value.trim(), pin: $c('pin').value.trim() }) });
+  const d = await r.json();
+  if (!r.ok) {
+    $c('err').textContent = d.error || 'Sign-in failed';
+    const h = $c('hub'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake');
+    return;
+  }
+  localStorage.setItem('nova_token', d.token);
+  localStorage.setItem('nova_me', JSON.stringify(d.student));
+  location.href = 'pass.html';
+}
+
+async function staffLogin() {
+  const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: $c('apw').value }) });
+  const d = await r.json();
+  if (!r.ok) {
+    $c('aerr').textContent = d.error || 'Sign-in failed';
+    const h = $c('hub'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake');
+    return;
+  }
+  localStorage.setItem('nova_admin', d.token);
+  location.href = 'admin.html';
+}
+
+['sid', 'pin'].forEach(id => $c(id).addEventListener('keydown', e => { if (e.key === 'Enter') studentLogin(); }));
+$c('apw').addEventListener('keydown', e => { if (e.key === 'Enter') staffLogin(); });
+
+/* live badge */
 async function pullStats() {
   try {
     const h = await (await fetch('/api/health')).json();
-    document.getElementById('st-board').textContent = fmtN(h.boardingsToday);
-    document.getElementById('livestat').textContent = 'LIVE · ' + h.liveClients + ' connected';
+    $c('livestat').textContent = 'LIVE · ' + h.boardingsToday + ' boarded today';
   } catch (e) {}
 }
 pullStats();
-try {   // boardings tick up the moment a validator flashes green — no refresh
+try {
   const es = new EventSource('/api/events');
   es.addEventListener('tap', pullStats);
   es.addEventListener('trip', pullStats);
 } catch (e) {}
 
-let INFO = null;
-fetch('/api/info').then(r => r.json()).then(i => {
-  INFO = i;
-  document.getElementById('brand').textContent = i.brand;
-  document.getElementById('org').textContent = i.org;
-  document.getElementById('ips').innerHTML = i.ips.length
-    ? i.ips.map(ip => `<code class="url">http://${ip}:${i.port}/pass.html</code>`).join('<br>')
-    : '<code class="url">single-laptop mode</code>';
-}).catch(() => {});
-
-/* welcome back — a returning student is one tap from their pass */
-const ME = JSON.parse(localStorage.getItem('nova_me') || 'null');
-if (ME) {
-  const cta = document.querySelector('.hero .cta a.btn.neon');
-  cta.textContent = `Open ${ME.name.split(' ')[0]}'s pass →`;
-}
-
-/* scroll reveal */
-const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-/* 3D tilt on role cards */
-document.querySelectorAll('.tilt').forEach(card => {
-  card.addEventListener('pointermove', e => {
-    const r = card.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - .5;
-    const y = (e.clientY - r.top) / r.height - .5;
-    card.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 8}deg)`;
-  });
-  card.addEventListener('pointerleave', () => { card.style.transform = ''; });
-});
-
-/* ---------- Nova assistant — guest mode (no sign-in, answers before questions pile up) ---------- */
-const $c = id => document.getElementById(id);
-
+/* ---------- Nova assistant — guest mode ---------- */
 function nextRunsLocal() {
   if (!INFO) return null;
   const [fh, fm] = INFO.firstRun.split(':').map(Number);
@@ -419,10 +338,8 @@ function toggleChat() {
   const c = $c('chat');
   c.classList.toggle('open');
   if (c.classList.contains('open') && !$c('msgs').children.length) {
-    botSay(ME
-      ? `Welcome back, ${ME.name.split(' ')[0]}! 👋 Your pass is one tap away — or ask me anything.`
-      : 'Hi! I\'m Nova 👋 Ask me anything about the shuttle — times, prices, how to get your pass. No sign-in needed.',
-      [ME ? 'Open my pass →' : 'How do I get my pass?', 'Next shuttle?', 'Prices']);
+    botSay('Hi! I\'m Nova 👋 Ask me anything about the shuttle — times, prices, how to get your pass. No sign-in needed.',
+      ['How do I get my pass?', 'Next shuttle?', 'Prices']);
   }
 }
 function addMsg(text, who) {
@@ -449,9 +366,9 @@ function botSay(text, chips) {
   }, 420 + Math.random() * 320);
 }
 function userSay(text) {
-  /* action chips navigate — convenience over conversation */
-  if (/open my pass/i.test(text)) { location.href = 'pass.html'; return; }
-  if (/open the console/i.test(text)) { location.href = 'admin.html'; return; }
+  if (/sign in above|open my pass/i.test(text)) { setRole('student'); $c('sid').focus(); $c('chat').classList.remove('open'); return; }
+  if (/open the console/i.test(text)) { setRole('staff'); $c('apw').focus(); $c('chat').classList.remove('open'); return; }
+  if (/how it works/i.test(text)) { location.href = 'about.html'; return; }
   addMsg(text, 'me'); respond(text);
 }
 function sendChat() {
@@ -466,44 +383,32 @@ function respond(raw) {
   const q = raw.toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
   const p = INFO ? INFO.prices : { single: 5, day: 8, week: 30 };
 
-  /* getting started — the most asked question, answered in one breath */
   if (/get|start|sign in|login|log in|register|enrol|how do i.*pass|my pass|new here|first time/.test(q)) {
-    return botSay('Easy:\n1. Tap "Open my pass" and sign in once with your student ID + PIN (the office gives you these).\n2. Add it to your home screen — it stays there like an app.\n3. At the bus, tap the code for fullscreen boarding mode and hold it up. Done — about two seconds. ✅', ['Open my pass →', 'Prices', 'Next shuttle?']);
+    return botSay('Easy:\n1. Sign in above with your student ID + PIN (the office gives you these) — just once.\n2. Add the pass to your home screen — it stays there like an app.\n3. At the bus: show the code or tap your card. Two seconds. ✅', ['Sign in above ↑', 'Prices', 'Next shuttle?']);
   }
-
-  /* schedule */
   if (/next|when|time|schedule|shuttle|bus|timing|hour|first|last|how often|frequen/.test(q)) {
     const runs = nextRunsLocal();
     if (!runs) return botSay('One sec — still loading the timetable. Ask me again in a moment!');
-    return botSay(`Next shuttles from Nova Towers:\n🚌 ${runs[0]} (next)\n🚌 ${runs[1]}\n🚌 ${runs[2]}\n\nBuses run ${INFO.firstRun}–${INFO.lastRun}, every ${INFO.runEveryMin} minutes.`, ['Open my pass →', 'Prices']);
+    return botSay(`Next shuttles from Nova Towers:\n🚌 ${runs[0]} (next)\n🚌 ${runs[1]}\n🚌 ${runs[2]}\n\nBuses run ${INFO.firstRun}–${INFO.lastRun}, every ${INFO.runEveryMin} minutes.`, ['Sign in above ↑', 'Prices']);
   }
-
-  /* prices */
   if (/price|cost|how much|fee|pay|pass|ticket|aed/.test(q)) {
-    return botSay(`Nova Towers residents ride free — it's already in your fees. 🎉\n\nLive nearby? Buy in two taps inside the app:\n• Single ride — AED ${p.single}\n• Day pass — AED ${p.day}\n• Weekly — AED ${p.week}`, ['Open my pass →']);
+    return botSay(`Nova Towers residents ride free — it's already in your fees. 🎉\n\nLive nearby? Buy in two taps inside the app:\n• Single ride — AED ${p.single}\n• Day pass — AED ${p.day}\n• Weekly — AED ${p.week}`, ['Sign in above ↑']);
   }
-
-  /* lost card */
   if (/lost|stolen|missing|block/.test(q)) {
-    return botSay('No stress — open your pass, find "My tap card", and hit "Block it instantly". Every bus rejects the lost card immediately while your QR keeps working. The office can issue a replacement.', ['Open my pass →']);
+    return botSay('No stress — sign in, open "My tap card", and hit "Block it instantly". Every bus rejects the lost card immediately while your QR keeps working. The office can issue a replacement.', ['Sign in above ↑']);
   }
-
-  /* security / how it works */
+  if (/rfid|card|tap|nfc|sticker/.test(q)) {
+    return botSay('Every student can carry an RFID tap card — a chip sticker on your existing student card. Tap it on the bus reader and you\'re aboard, no phone needed. Lost it? Block it in one tap from your pass. 💳', ['Sign in above ↑', 'How it works →']);
+  }
   if (/how|work|secure|safe|screenshot|cheat|sneak|fake|qr/.test(q)) {
-    return botSay('Your pass is a QR code that re-generates every 30 seconds with bank-style cryptography — screenshots expire before they can be shared, a borrowed pass shows the wrong photo to the driver, and one green per trip stops window pass-backs. You never notice any of it. That\'s the design: convenience on top, security underneath. 🔐');
+    return botSay('Your pass rotates every 30 seconds with bank-style cryptography — screenshots die, borrowed passes show the wrong face, and one green per trip stops pass-backs. You never notice any of it: convenience on top, security underneath. 🔐', ['How it works →']);
   }
-
-  /* resident vs external */
   if (/resident|external|nearby|live in|nova towers|who can/.test(q)) {
-    return botSay('Nova Towers residents: the shuttle is included in your fees — your pass just works. Live nearby? You can ride too: grab a single, day, or weekly pass in the app and the same green light welcomes you aboard.', ['Prices', 'Open my pass →']);
+    return botSay('Nova Towers residents: the shuttle is included in your fees — your pass just works. Live nearby? Grab a single, day, or weekly pass in the app and the same green light welcomes you aboard.', ['Prices', 'Sign in above ↑']);
   }
-
-  /* admin */
   if (/admin|console|office|staff|manage|driver/.test(q)) {
-    return botSay('The logistics console is for the office: live boarding feed, demand heatmap, fleet recommendations, card management. Drivers never touch anything — the validator does the checking.', ['Open the console →']);
+    return botSay('The console is for the logistics office: live boarding feed, demand analytics, card management, audit trail. Drivers never touch anything — the validator does the checking.', ['Open the console →']);
   }
-
-  /* greetings & thanks */
   if (/^(hi|hello|hey|yo|salam|salaam|marhaba|namaste|hola)\b/.test(q)) {
     return botSay('Hey! What do you need?', ['How do I get my pass?', 'Next shuttle?', 'Prices']);
   }
