@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Shuttle — Admin</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* sign-in gate */
+  .gate {
+    position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(800px 500px at 10% 0%, rgba(142,92,247,.12), transparent 60%),
+      radial-gradient(800px 500px at 90% 100%, rgba(10,132,255,.12), transparent 60%),
+      var(--bg);
+  }
+  .gate .card { width: min(380px, 90vw); padding: 30px; }
+  .gate .logo { width: 52px; height: 52px; border-radius: 15px; font-size: 24px; margin: 0 auto 16px; }
+  .gate h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 4px; }
+  .gate p { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+  .err { color: var(--bad); font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
+  .hint { text-align: center; margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+  .head { display: flex; align-items: center; gap: 12px; padding: 26px 0 20px; }
+  .head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; }
+  .head .sub { font-size: 13px; color: var(--muted); }
+  .head .out { margin-left: auto; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .stat b { font-size: 28px; display: block; letter-spacing: -.03em; }
+  .stat span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .card h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; }
+  canvas { width: 100%; height: 190px; }
+  .scroll { max-height: 330px; overflow: auto; }
+  .stulist img { width: 32px; height: 32px; border-radius: 9px; vertical-align: middle; margin-right: 9px; }
+  .pin { font-family: ui-monospace, 'SF Mono', Consolas, monospace; background: rgba(0,0,0,.05); padding: 2px 8px; border-radius: 6px; font-size: 13px; }
+  .cardlink { color: var(--accent); cursor: pointer; font-weight: 600; font-size: 13px; }
+  .enroll input, .enroll select { margin-bottom: 12px; }
+  input[type=file] { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="card" id="gatecard">
+    <div class="logo">N</div>
+    <h1>Admin console</h1>
+    <p>Logistics office sign-in</p>
+    <div class="field"><label>Password</label>
+      <input type="password" id="pw" placeholder="••••••••">
+    </div>
+    <div class="err" id="gerr"></div>
+    <button class="btn" style="width:100%" onclick="adminLogin()">Sign in</button>
+    <p class="hint">Demo password: nova-admin</p>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <div class="head">
+    <span class="logo">N</span>
+    <div><h1>Admin console</h1><div class="sub">Full control, zero chasing</div></div>
+    <button class="btn small ghost out" onclick="signout()">Sign out</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Boardings per trip <span class="muted" style="font-weight:400">— green boarded · red denied</span></h2>
+      <canvas id="chart" width="680" height="380"></canvas>
+      <p class="muted" id="chart-empty" style="display:none">No trips yet — run a few scans on the validator.</p>
+    </div>
+    <div class="card">
+      <h2>Exceptions — every red light, explained</h2>
+      <div class="scroll"><table id="exc"><thead><tr><th>Time</th><th>Who</th><th>Bus</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card enroll">
+      <h2>Enroll a student</h2>
+      <input type="text" id="en-name" placeholder="Full name">
+      <select id="en-type">
+        <option value="resident">Nova resident — shuttle in fees</option>
+        <option value="external">Lives nearby — buys passes</option>
+      </select>
+      <input type="file" id="en-photo" accept="image/*">
+      <div><button class="btn" onclick="enroll()">Enroll</button>
+      <span class="muted" id="en-msg" style="margin-left:10px"></span></div>
+    </div>
+    <div class="card stulist">
+      <h2>Students</h2>
+      <div class="scroll"><table id="stu"><thead><tr><th>Student</th><th>PIN</th><th>NFC card</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recent taps</h2>
+    <div class="scroll"><table id="taps"><thead><tr><th></th><th>Time</th><th>Who</th><th>Bus</th><th>Via</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('nova_admin') || '';
+const $ = id => document.getElementById(id);
+const fmt = iso => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const auth = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
+
+async function adminLogin() {
+  const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: $('pw').value }) });
+  const d = await r.json();
+  if (!r.ok) {
+    $('gerr').textContent = d.error || 'Sign-in failed';
+    const c = $('gatecard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    return;
+  }
+  TOKEN = d.token; localStorage.setItem('nova_admin', TOKEN);
+  enter();
+}
+function signout() { localStorage.removeItem('nova_admin'); location.reload(); }
+function enter() {
+  $('gate').style.display = 'none';
+  $('app').style.display = '';
+  refresh(); setInterval(refresh, 4000);
+}
+
+async function refresh() {
+  const r = await fetch('/api/admin/summary', { headers: auth() });
+  if (r.status === 401) { signout(); return; }
+  const d = await r.json();
+  const s = d.stats;
+  $('stats').innerHTML = [
+    [s.boardingsToday, 'boardings today'],
+    [s.ridersToday, 'unique riders'],
+    [s.deniedToday, 'denied today'],
+    [s.tripsToday, 'trips today'],
+    ['AED ' + s.passRevenueAed, 'pass revenue'],
+    [s.enrolled, 'enrolled']
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  drawChart(d.perTrip);
+
+  $('exc').querySelector('tbody').innerHTML = d.exceptions.map(t =>
+    `<tr><td>${fmt(t.time)}</td><td>${t.name}</td><td>${t.busId}</td><td>${t.reason}</td></tr>`
+  ).join('') || '<tr><td colspan="4" class="muted">No exceptions yet</td></tr>';
+
+  $('taps').querySelector('tbody').innerHTML = d.recent.map(t =>
+    `<tr><td><span class="dot ${t.result === 'green' ? 'g' : 'r'}"></span></td><td>${fmt(t.time)}</td><td>${t.name}</td><td>${t.busId}</td><td>${t.via || 'qr'}</td><td>${t.reason}</td></tr>`
+  ).join('') || '<tr><td colspan="6" class="muted">No taps yet — scan something on the validator.</td></tr>';
+
+  const students = await (await fetch('/api/students', { headers: auth() })).json();
+  $('stu').querySelector('tbody').innerHTML = students.map(s =>
+    `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
+     <td><span class="pin">${s.pin}</span></td>
+     <td>${s.cardUid ? `<span class="pin">${s.cardUid.slice(0, 8)}…</span>` : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`}</td>
+     <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`).join('');
+}
+
+function drawChart(perTrip) {
+  const c = $('chart'), ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  $('chart-empty').style.display = perTrip.length ? 'none' : '';
+  if (!perTrip.length) return;
+  const max = Math.max(8, ...perTrip.map(t => t.green + t.red));
+  const baseY = 320, top = 30;
+  ctx.strokeStyle = 'rgba(0,0,0,.07)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = baseY - (i / 4) * (baseY - top);
+    ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(660, y); ctx.stroke();
+  }
+  const bw = Math.min(64, (c.width - 60) / perTrip.length - 16);
+  perTrip.forEach((t, i) => {
+    const x = 40 + i * (bw + 16);
+    const gh = (t.green / max) * (baseY - top), rh = (t.red / max) * (baseY - top);
+    ctx.fillStyle = '#34c759';
+    if (gh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh, bw, gh, [6, 6, 0, 0]); ctx.fill(); }
+    ctx.fillStyle = '#ff3b30';
+    if (rh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh - rh, bw, rh, [6, 6, 6, 6]); ctx.fill(); }
+    ctx.fillStyle = '#1d1d1f'; ctx.font = '600 17px -apple-system, Segoe UI'; ctx.textAlign = 'center';
+    if (t.green + t.red) ctx.fillText(t.green + (t.red ? '+' + t.red : ''), x + bw / 2, baseY - gh - rh - 10);
+    ctx.fillStyle = '#86868b'; ctx.font = '500 14px -apple-system, Segoe UI';
+    ctx.fillText(t.label, x + bw / 2, 352);
+  });
+}
+
+async function assign(sid, name) {
+  const uid = prompt(`NFC sticker UID for ${name}\n(tap the sticker on an Android phone to read it, e.g. 04:a2:5c:1e)`);
+  if (!uid) return;
+  await fetch('/api/assign-card', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, uid }) });
+  refresh();
+}
+
+async function enroll() {
+  const name = $('en-name').value.trim();
+  const type = $('en-type').value;
+  const msg = $('en-msg');
+  if (!name) { msg.textContent = 'Name required'; return; }
+  let photo = null;
+  const f = $('en-photo').files[0];
+  if (f) photo = await shrink(f);
+  const r = await fetch('/api/students', { method: 'POST', headers: auth(), body: JSON.stringify({ name, type, photo }) });
+  const d = await r.json();
+  msg.textContent = d.ok ? `Enrolled as ${d.id} — PIN ${d.pin}` : (d.error || 'Failed');
+  $('en-name').value = ''; $('en-photo').value = '';
+  refresh();
+}
+
+function shrink(file) {   // resize the photo to 160px so the database stays tiny
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = 160;
+      const side = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 160, 160);
+      res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+if (TOKEN) {
+  fetch('/api/admin/summary', { headers: auth() }).then(r => { if (r.ok) enter(); else signout(); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Nova Pass</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="stylesheet" href="style.css">
+<style>
+  body {
+    background:
+      radial-gradient(900px 500px at 0% -10%, rgba(10,132,255,.10), transparent 60%),
+      radial-gradient(800px 500px at 110% 20%, rgba(142,92,247,.10), transparent 60%),
+      var(--bg);
+  }
+  .wrap { max-width: 470px; padding-top: 18px; }
+
+  /* sign-in */
+  .auth { margin-top: 9vh; }
+  .auth .logo { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; margin: 0 auto 18px; }
+  .auth h1 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; }
+  .auth .sub { text-align: center; color: var(--muted); margin: 8px 0 26px; font-size: 15px; }
+  .auth .card { padding: 28px; }
+  .err { color: var(--bad); font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
+  .hint { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+  /* wallet card */
+  .wallet {
+    border-radius: 26px; padding: 24px 24px 28px; color: #fff;
+    background: linear-gradient(150deg, #101014 0%, #1c1c26 55%, #16161e 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+    position: relative; overflow: hidden;
+  }
+  .wallet::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.06) 45%, transparent 60%);
+    pointer-events: none;
+  }
+  .wallet .head { display: flex; align-items: center; gap: 13px; margin-bottom: 20px; }
+  .wallet img.face { width: 50px; height: 50px; border-radius: 14px; }
+  .wallet .head b { font-size: 17px; display: block; letter-spacing: -.01em; }
+  .wallet .head span { font-size: 13px; color: rgba(255,255,255,.55); }
+  .wallet .head .logo { margin-left: auto; }
+  .qrbox {
+    background: #fff; border-radius: 20px; padding: 16px;
+    width: fit-content; margin: 0 auto;
+  }
+  .qrbox img { display: block; width: 224px; height: 224px; image-rendering: pixelated; transition: opacity .35s; }
+  .qrbox img.swap { opacity: .15; }
+  .meter { height: 5px; background: rgba(255,255,255,.16); border-radius: 3px; margin: 18px 8px 8px; overflow: hidden; }
+  .meter > div { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #0a84ff, #8e5cf7); transition: width 1s linear; }
+  .meter-label { text-align: center; font-size: 12.5px; color: rgba(255,255,255,.55); }
+  .statusrow { text-align: center; margin-top: 14px; }
+  .statusrow .chip { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.14); }
+
+  /* below-card sections */
+  .panel { margin-top: 16px; }
+  .panel h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; }
+  .runs { display: flex; gap: 10px; }
+  .run { flex: 1; text-align: center; background: rgba(0,113,227,.06); border-radius: 16px; padding: 14px 6px 12px; }
+  .run b { font-size: 19px; display: block; letter-spacing: -.02em; }
+  .run span { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .seatbar { height: 7px; border-radius: 4px; background: rgba(0,0,0,.07); overflow: hidden; margin-top: 12px; }
+  .seatbar > div { height: 100%; border-radius: 4px; background: var(--good); transition: width .5s; }
+
+  .buy { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .buy button {
+    border: 1.5px solid var(--line); background: #fff; border-radius: 16px;
+    padding: 16px 6px 13px; cursor: pointer; font: inherit;
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+  }
+  .buy button:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,113,227,.12); }
+  .buy b { display: block; font-size: 19px; letter-spacing: -.02em; color: var(--ink); }
+  .buy span { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+  .track svg { width: 100%; height: 70px; display: block; }
+  .signout { text-align: center; margin-top: 22px; }
+  .signout a { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .signout a:hover { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- sign in -->
+  <section class="auth" id="auth">
+    <div class="logo">N</div>
+    <h1>My Nova Pass</h1>
+    <p class="sub">Sign in to board the shuttle</p>
+    <div class="card" id="authcard">
+      <div class="field"><label>Student ID</label>
+        <input type="text" id="sid" placeholder="NS-101" autocomplete="off" autocapitalize="characters">
+      </div>
+      <div class="field"><label>PIN</label>
+        <input type="password" id="pin" placeholder="••••" inputmode="numeric" maxlength="6">
+      </div>
+      <div class="err" id="err"></div>
+      <button class="btn" style="width:100%" onclick="login()">Sign in</button>
+    </div>
+    <p class="hint">Demo accounts: NS-101 … NS-108 · PIN 1234</p>
+  </section>
+
+  <!-- pass -->
+  <section id="app" style="display:none">
+    <div class="wallet">
+      <div class="head">
+        <img class="face" id="photo" alt="">
+        <div><b id="name"></b><span id="subid"></span></div>
+        <span class="logo">N</span>
+      </div>
+      <div class="qrbox"><img id="qr" alt="Boarding QR"></div>
+      <div class="meter"><div id="bar" style="width:100%"></div></div>
+      <div class="meter-label">New code in <span id="secs">30</span> s — screenshots won't board</div>
+      <div class="statusrow"><span class="chip" id="status"></span></div>
+    </div>
+
+    <div class="card panel">
+      <h2>Next shuttles · Nova → Campus</h2>
+      <div class="runs" id="runs"></div>
+      <div class="seatbar"><div id="seatfill" style="width:100%"></div></div>
+      <p class="muted" style="margin-top:8px;font-size:13px"><span id="seats">26</span> of <span id="cap">26</span> seats free on the current run</p>
+    </div>
+
+    <div class="card panel" id="shop" style="display:none">
+      <h2>Get a pass</h2>
+      <div class="buy">
+        <button onclick="buy('single')"><b id="p1"></b><span>1 ride</span></button>
+        <button onclick="buy('day')"><b id="p2"></b><span>Day</span></button>
+        <button onclick="buy('week')"><b id="p3"></b><span>Week</span></button>
+      </div>
+      <p class="muted" style="margin-top:12px;font-size:13px">Payment is simulated in this MVP.</p>
+    </div>
+
+    <div class="card panel track">
+      <h2>Where's my shuttle? <span class="muted" style="font-weight:400;font-size:13px">(simulated)</span></h2>
+      <svg viewBox="0 0 400 70">
+        <line x1="28" y1="34" x2="372" y2="34" stroke="rgba(0,0,0,.08)" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="28" cy="34" r="7" fill="#0a84ff"/>
+        <circle cx="372" cy="34" r="7" fill="#34c759"/>
+        <text x="28" y="62" font-size="11.5" fill="#86868b" text-anchor="middle" font-weight="600">Nova Towers</text>
+        <text x="372" y="62" font-size="11.5" fill="#86868b" text-anchor="middle" font-weight="600">Campus</text>
+        <text id="bus" x="28" y="22" font-size="17" text-anchor="middle">🚌</text>
+      </svg>
+    </div>
+
+    <div class="signout"><a href="#" onclick="signout();return false">Sign out</a></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="vendor/qrcode.min.js"></script>
+<script>
+let TOKEN = localStorage.getItem('nova_token') || '';
+let ME = JSON.parse(localStorage.getItem('nova_me') || 'null');
+let lastPayload = '', secondsLeft = 30, slotSeconds = 30;
+
+const $ = id => document.getElementById(id);
+const auth = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
+
+async function login() {
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sid: $('sid').value.trim(), pin: $('pin').value.trim() }) });
+  const d = await r.json();
+  if (!r.ok) {
+    $('err').textContent = d.error || 'Sign-in failed';
+    const c = $('authcard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    return;
+  }
+  TOKEN = d.token; ME = d.student;
+  localStorage.setItem('nova_token', TOKEN);
+  localStorage.setItem('nova_me', JSON.stringify(ME));
+  enter();
+}
+
+function signout() {
+  localStorage.removeItem('nova_token'); localStorage.removeItem('nova_me');
+  location.reload();
+}
+
+function enter() {
+  $('auth').style.display = 'none';
+  $('app').style.display = '';
+  $('photo').src = ME.photo;
+  $('name').textContent = ME.name;
+  $('subid').textContent = ME.id + (ME.type === 'resident' ? ' · Nova Towers resident' : ' · Pass holder');
+  $('shop').style.display = ME.type === 'resident' ? 'none' : '';
+  refresh();
+}
+
+function drawQr(payload) {
+  const qr = qrcode(0, 'M');
+  qr.addData(payload); qr.make();
+  const img = $('qr');
+  img.classList.add('swap');
+  setTimeout(() => { img.src = qr.createDataURL(8, 8); img.classList.remove('swap'); }, 180);
+}
+
+async function refresh() {
+  if (!TOKEN) return;
+  const r = await fetch('/api/passcode', { headers: auth() });
+  if (r.status === 401) { signout(); return; }
+  if (!r.ok) return;
+  const d = await r.json();
+  secondsLeft = d.secondsLeft; slotSeconds = d.slotSeconds;
+  if (d.payload !== lastPayload) { lastPayload = d.payload; drawQr(d.payload); }
+  $('status').textContent = d.status.label + ' · ' + d.status.detail;
+  $('seats').textContent = d.seatsLeft; $('cap').textContent = d.capacity;
+  $('seatfill').style.width = (100 * d.seatsLeft / d.capacity) + '%';
+  $('runs').innerHTML = d.nextRuns.map((t, i) =>
+    `<div class="run"><b>${t}</b><span>${i === 0 ? 'next' : '&nbsp;'}</span></div>`).join('');
+  $('p1').textContent = 'AED ' + d.prices.single;
+  $('p2').textContent = 'AED ' + d.prices.day;
+  $('p3').textContent = 'AED ' + d.prices.week;
+}
+
+async function buy(type) {
+  const r = await fetch('/api/buy', { method: 'POST', headers: auth(), body: JSON.stringify({ type }) });
+  const d = await r.json();
+  if (d.ok) { toast('Pass activated — you\'re good to ride'); refresh(); }
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+setInterval(() => {
+  if (!TOKEN || $('app').style.display === 'none') return;
+  secondsLeft = Math.max(0, secondsLeft - 1);
+  $('secs').textContent = secondsLeft;
+  $('bar').style.width = (100 * secondsLeft / slotSeconds) + '%';
+  if (secondsLeft <= 0) refresh();
+}, 1000);
+setInterval(() => { if (TOKEN && $('app').style.display !== 'none') refresh(); }, 10000);
+
+/* toy bus animation */
+let bx = 28, dir = 1;
+setInterval(() => {
+  bx += dir * 2.1;
+  if (bx > 372) { bx = 372; dir = -1; }
+  if (bx < 28) { bx = 28; dir = 1; }
+  const el = $('bus'); if (el) el.setAttribute('x', bx);
+}, 90);
+
+/* enter key submits */
+['sid', 'pin'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
+
+if (TOKEN && ME) enter();
+</script>
+</body>
+</html>

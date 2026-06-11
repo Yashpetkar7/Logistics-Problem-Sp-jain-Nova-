@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Validator</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: #000; color: #fff; }
+  .wrap { max-width: 780px; padding-top: 16px; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .bar .brandline { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .bar .brandline b { font-size: 17px; letter-spacing: -.01em; }
+  .bar .brandline span { display: block; font-size: 12px; color: #8a8a93; }
+  .bar select {
+    width: auto; background: #161618; color: #fff; border-color: #2c2c30;
+    border-radius: 980px; padding: 9px 16px; font-size: 14px; font-weight: 600;
+  }
+  .pill {
+    background: #161618; border: 1px solid #2c2c30; border-radius: 980px;
+    padding: 9px 16px; font-size: 13.5px; color: #c8c8cf;
+  }
+  .pill b { color: #34c759; font-weight: 700; }
+  .pill b.warn { color: #ff6961; }
+  .pill.nfc { display: none; color: #0a84ff; border-color: rgba(10,132,255,.4); }
+
+  .stage {
+    position: relative; border-radius: 28px; overflow: hidden; background: #0a0a0c;
+    aspect-ratio: 4/3; border: 1px solid #1d1d21;
+  }
+  video { width: 100%; height: 100%; object-fit: cover; }
+  .scanframe { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; pointer-events: none; }
+  .scanframe .frame {
+    width: 52%; aspect-ratio: 1; border-radius: 24px;
+    border: 2.5px solid rgba(255,255,255,.35);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.25);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity:.8 } 50% { transform: scale(1.025); opacity: 1 } }
+  .scanframe .cue { font-size: 15px; font-weight: 600; color: rgba(255,255,255,.85); letter-spacing: .01em; }
+
+  .overlay {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    text-align: center; padding: 20px;
+  }
+  .overlay.green { display: flex; background: rgba(40, 167, 78, .96); }
+  .overlay.red { display: flex; background: rgba(215, 35, 35, .96); }
+  .overlay > * { animation: pop .35s cubic-bezier(.2, .9, .3, 1.4); }
+  @keyframes pop { from { transform: scale(.7); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+  .overlay img { width: 128px; height: 128px; border-radius: 26px; border: 4px solid rgba(255,255,255,.9); box-shadow: 0 14px 40px rgba(0,0,0,.3); }
+  .overlay .mark { font-size: 56px; font-weight: 800; line-height: 1; }
+  .overlay .big { font-size: 30px; font-weight: 800; letter-spacing: .04em; }
+  .overlay .who { font-size: 20px; font-weight: 600; }
+  .overlay .why { font-size: 15px; opacity: .95; }
+
+  .camerr { background: #161618; border: 1px solid #2c2c30; border-radius: 18px; padding: 18px; display: none; font-size: 14.5px; color: #c8c8cf; margin-top: 14px; }
+  .manual { margin-top: 16px; display: flex; gap: 10px; }
+  .manual input { background: #161618; color: #fff; border-color: #2c2c30; border-radius: 14px; }
+  .hint { color: #8a8a93; font-size: 13px; margin-top: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="brandline"><span class="logo">N</span><div><b>Validator</b><span>at the door · driver just glances</span></div></div>
+    <select id="bus"></select>
+    <button class="btn small dark" style="border:1px solid #2c2c30" onclick="newTrip()">End trip · start new</button>
+  </div>
+  <div class="bar">
+    <span class="pill">Boarded <b id="boarded">0</b></span>
+    <span class="pill">Seats left <b id="seats">26</b></span>
+    <span class="pill">Denied <b class="warn" id="denied">0</b></span>
+    <span class="pill nfc" id="nfcpill">⊙ NFC card reader active</span>
+  </div>
+
+  <div class="stage">
+    <video id="cam" playsinline muted></video>
+    <div class="scanframe"><div class="frame"></div><div class="cue">Show your pass</div></div>
+    <div class="overlay" id="overlay">
+      <img id="ophoto" alt="" style="display:none">
+      <div class="mark" id="omark"></div>
+      <div class="big" id="obig"></div>
+      <div class="who" id="owho"></div>
+      <div class="why" id="owhy"></div>
+    </div>
+  </div>
+  <div class="camerr" id="camerr"></div>
+
+  <div class="manual">
+    <input type="text" id="manualId" placeholder="Fallback: student ID, e.g. NS-101 (dead phone)">
+    <button class="btn small" onclick="manual()">Check in</button>
+  </div>
+  <p class="hint">Anti-passback is on: a pass scans green once per trip — a second scan goes red. Press "End trip" when the bus departs. On an Android validator, NFC card stickers tap straight onto the back of the device.</p>
+</div>
+
+<script src="vendor/jsQR.js"></script>
+<script>
+let BUS = 'Bus 1', busy = false, lastSeen = '', lastSeenAt = 0;
+const $ = id => document.getElementById(id);
+
+async function init() {
+  const info = await (await fetch('/api/info')).json();
+  const sel = $('bus');
+  sel.innerHTML = info.buses.map(b => `<option>${b}</option>`).join('');
+  sel.onchange = () => { BUS = sel.value; state(); };
+  state(); setInterval(state, 4000);
+  startCam();
+  startNfc();
+}
+
+async function state() {
+  const d = await (await fetch('/api/state?busId=' + encodeURIComponent(BUS))).json();
+  $('boarded').textContent = d.boarded;
+  $('seats').textContent = d.seatsLeft;
+  $('denied').textContent = d.denied;
+}
+
+async function startCam() {
+  const err = $('camerr');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    err.style.display = 'block';
+    err.textContent = 'The camera needs http://localhost or an HTTPS address. Once deployed (HTTPS), the camera works on any device. Manual check-in below still works here.';
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
+    const v = $('cam');
+    v.srcObject = stream; await v.play();
+    scanLoop();
+  } catch (e) {
+    err.style.display = 'block';
+    err.textContent = 'Camera blocked: ' + e.message + ' — allow camera access and reload. Manual check-in below still works.';
+  }
+}
+
+function scanLoop() {
+  const v = $('cam');
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  setInterval(() => {
+    if (busy || v.videoWidth === 0) return;
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    ctx.drawImage(v, 0, 0);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const code = jsQR(img.data, c.width, c.height, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      const now = Date.now();
+      if (code.data === lastSeen && now - lastSeenAt < 4000) return;  // debounce same pass
+      lastSeen = code.data; lastSeenAt = now;
+      scan(code.data);
+    }
+  }, 220);
+}
+
+/* NFC stickers — Web NFC is Android Chrome only; activates automatically when available */
+async function startNfc() {
+  if (!('NDEFReader' in window)) return;
+  try {
+    const reader = new NDEFReader();
+    await reader.scan();
+    $('nfcpill').style.display = '';
+    reader.onreading = e => { if (!busy && e.serialNumber) scanCard(e.serialNumber); };
+  } catch (e) { /* permission denied or unsupported — QR still works */ }
+}
+
+const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+async function scan(payload) {
+  busy = true;
+  show(await (await post('/api/scan', { payload, busId: BUS })).json());
+}
+async function scanCard(uid) {
+  busy = true;
+  show(await (await post('/api/scan-card', { uid, busId: BUS })).json());
+}
+async function manual() {
+  const sid = $('manualId').value.trim();
+  if (!sid) return;
+  busy = true;
+  $('manualId').value = '';
+  show(await (await post('/api/scan-manual', { sid, busId: BUS })).json());
+}
+
+function show(d) {
+  const o = $('overlay');
+  const ok = d.result === 'green';
+  o.className = 'overlay ' + d.result;
+  $('omark').textContent = ok ? '✓' : '✕';
+  $('obig').textContent = ok ? 'WELCOME ABOARD' : 'NOT VALID';
+  $('owho').textContent = d.student ? d.student.name + ' · ' + d.student.id : '';
+  $('owhy').textContent = d.reason || '';
+  const ph = $('ophoto');
+  if (d.student && d.student.photo) { ph.src = d.student.photo; ph.style.display = ''; } else ph.style.display = 'none';
+  beep(ok);
+  state();
+  setTimeout(() => { o.className = 'overlay'; busy = false; }, ok ? 1800 : 2600);
+}
+
+async function newTrip() {
+  await post('/api/trip/new', { busId: BUS });
+  lastSeen = '';
+  state();
+}
+
+let actx;
+function beep(ok) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const tone = (f, start, dur, type) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.25, t + start);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t + start); o.stop(t + start + dur);
+    };
+    if (ok) { tone(880, 0, .14); tone(1320, .13, .2); }
+    else { tone(220, 0, .35, 'square'); tone(180, .3, .4, 'square'); }
+  } catch (e) {}
+}
+
+$('manualId').addEventListener('keydown', e => { if (e.key === 'Enter') manual(); });
+init();
+</script>
+</body>
+</html>

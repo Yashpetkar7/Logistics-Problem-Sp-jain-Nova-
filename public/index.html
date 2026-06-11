@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Shuttle — One tap. Green light. Go.</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero { text-align: center; padding: 110px 0 70px; position: relative; }
+  .hero .lede { max-width: 620px; margin: 22px auto 0; }
+  .hero .cta { margin-top: 36px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .glow {
+    position: absolute; inset: auto; width: 560px; height: 560px; border-radius: 50%;
+    filter: blur(110px); opacity: .16; pointer-events: none; z-index: -1;
+  }
+  .glow.a { background: #0a84ff; top: -160px; left: -180px; }
+  .glow.b { background: #8e5cf7; top: -60px; right: -200px; }
+
+  .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 26px; }
+  .role { text-decoration: none; color: inherit; }
+  .role .card { height: 100%; padding: 30px 26px; transition: transform .25s cubic-bezier(.2,.7,.3,1.2), box-shadow .25s; }
+  .role .card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lift); }
+  .role .icon {
+    width: 54px; height: 54px; border-radius: 16px; font-size: 26px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .role h3 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
+  .role p { color: var(--muted); font-size: 15px; }
+  .role .go { display: inline-block; margin-top: 16px; color: var(--accent); font-weight: 600; font-size: 15px; }
+
+  .strip { margin-top: 90px; text-align: center; }
+  .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 34px; text-align: left; }
+  .feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .feat .e { font-size: 24px; }
+  .feat b { display: block; margin: 10px 0 4px; font-size: 16px; letter-spacing: -.01em; }
+  .feat span { color: var(--muted); font-size: 14px; }
+
+  .phone-box { margin-top: 80px; }
+  .phone-box .card { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; padding: 28px; }
+  code.url { background: rgba(0,113,227,.08); color: var(--accent-deep); padding: 6px 14px; border-radius: 10px; font-size: 15px; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
+  footer { margin-top: 90px; text-align: center; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-inner">
+  <a class="brand" href="/"><span class="logo">N</span><b id="brand">Nova Shuttle</b></a>
+  <span class="spacer"></span>
+  <a class="link" href="pass.html">Student</a>
+  <a class="link" href="validator.html">Validator</a>
+  <a class="link" href="admin.html">Admin</a>
+</div></nav>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="glow a"></div><div class="glow b"></div>
+    <h1 class="display">One tap.<br><span class="grad">Green light. Go.</span></h1>
+    <p class="lede">The shuttle boarding platform built for <span id="org">SP Jain · Nova Towers</span>. Two-second boarding, zero driver effort, every ride accounted for.</p>
+    <div class="cta">
+      <a class="btn" href="pass.html">Open my pass</a>
+      <a class="btn ghost" href="admin.html">Admin console</a>
+    </div>
+  </section>
+
+  <section class="roles">
+    <a class="role reveal" href="pass.html"><div class="card">
+      <div class="icon" style="background:rgba(10,132,255,.12)">📱</div>
+      <h3>Student pass</h3>
+      <p>A live QR pass that refreshes every 30 seconds, next-shuttle times, seats left, and instant ride passes.</p>
+      <span class="go">Sign in →</span>
+    </div></a>
+    <a class="role reveal" href="validator.html"><div class="card">
+      <div class="icon" style="background:rgba(52,199,89,.12)">🚌</div>
+      <h3>Bus validator</h3>
+      <p>The device at the door. Scans QR and NFC cards, flashes green or red with the rider's photo, and beeps. Drivers just glance.</p>
+      <span class="go">Open kiosk →</span>
+    </div></a>
+    <a class="role reveal" href="admin.html"><div class="card">
+      <div class="icon" style="background:rgba(142,92,247,.12)">📊</div>
+      <h3>Admin console</h3>
+      <p>Enrollment, live boarding log, every denial explained, ridership per trip, and pass revenue — at a glance.</p>
+      <span class="go">Sign in →</span>
+    </div></a>
+  </section>
+
+  <section class="strip reveal">
+    <h2 class="section">Why nobody sneaks past it</h2>
+    <p class="lede" style="margin-top:10px">Five guardrails, layered. Cheating becomes harder than paying.</p>
+    <div class="feats">
+      <div class="feat reveal"><span class="e">🔄</span><b>Rotating codes</b><span>The QR re-generates every 30 seconds — screenshots die before they reach a friend.</span></div>
+      <div class="feat reveal"><span class="e">🪪</span><b>Photo on every scan</b><span>The owner's photo flashes to the driver. A borrowed pass shows the wrong face.</span></div>
+      <div class="feat reveal"><span class="e">🚫</span><b>Anti-passback</b><span>One green per student per trip. The phone passed back through the window scans red.</span></div>
+      <div class="feat reveal"><span class="e">📡</span><b>Works offline</b><span>Signature maths needs no internet — the bus verifies riders anywhere on the route.</span></div>
+      <div class="feat reveal"><span class="e">🧾</span><b>Everything logged</b><span>Every green and red lands in the console with a reason. Enforcement happens in the office, not at the door.</span></div>
+      <div class="feat reveal"><span class="e">💳</span><b>Spare seats earn</b><span>Non-residents buy single, day, or weekly passes in two taps — freeloaders become customers.</span></div>
+    </div>
+  </section>
+
+  <section class="phone-box reveal">
+    <div class="card">
+      <div style="flex:1;min-width:240px">
+        <h3 style="font-size:19px;letter-spacing:-.02em;margin-bottom:6px">Demo on a phone</h3>
+        <p class="muted">Join the same Wi-Fi as this laptop, then open the address on the right in the phone's browser.</p>
+      </div>
+      <div id="ips"><code class="url">looking up…</code></div>
+    </div>
+  </section>
+
+  <footer>Built by SP Jain students · works for any campus, shuttle, or gated community — brand, fleet and prices are all configuration.</footer>
+</div>
+
+<script>
+fetch('/api/info').then(r => r.json()).then(i => {
+  document.getElementById('brand').textContent = i.brand;
+  document.getElementById('org').textContent = i.org;
+  document.getElementById('ips').innerHTML = i.ips.length
+    ? i.ips.map(ip => `<code class="url">http://${ip}:${i.port}/pass.html</code>`).join('<br>')
+    : '<code class="url">single-laptop mode</code>';
+});
+const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
