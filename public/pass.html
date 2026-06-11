@@ -95,6 +95,53 @@
   .wallet-btn svg { width: 20px; height: 20px; }
   .installed { text-align:center; margin-top:14px; font-size:13px; color: var(--good-deep); font-weight:600; }
 
+  /* my tap card */
+  .tapcard {
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(135deg, #0b1020, #1a1340); color: #fff;
+    border-radius: 18px; padding: 18px;
+  }
+  .tapcard .chipic { width: 46px; height: 34px; border-radius: 7px; background: linear-gradient(135deg, #f5d061, #b8860b); flex: none; }
+  .tapcard b { font-size: 15px; display: block; }
+  .tapcard .uid { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px; color: rgba(255,255,255,.6); }
+  .tapcard .chip { margin-left: auto; }
+  .lostlink { display: inline-block; margin-top: 12px; color: var(--bad); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+
+  /* Nova assistant */
+  .chatfab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 150;
+    width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer;
+    background: linear-gradient(135deg, #0a84ff, #8e5cf7); color: #fff; font-size: 26px;
+    box-shadow: 0 12px 32px rgba(108, 74, 182, .45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s var(--spring);
+  }
+  .chatfab:hover { transform: scale(1.08); }
+  .chat {
+    position: fixed; right: 16px; bottom: 90px; z-index: 150;
+    width: min(370px, calc(100vw - 32px)); height: min(520px, 70vh);
+    background: #fff; border-radius: 24px; border: 1px solid var(--line);
+    box-shadow: var(--shadow-lift);
+    display: flex; flex-direction: column; overflow: hidden;
+    opacity: 0; pointer-events: none; transform: translateY(16px) scale(.97);
+    transition: opacity .25s, transform .3s var(--ease);
+  }
+  .chat.open { opacity: 1; pointer-events: auto; transform: none; }
+  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--bg-soft); }
+  .chat .chead b { font-size: 15px; }
+  .chat .chead span { font-size: 12px; color: var(--good-deep); font-weight: 600; }
+  .chat .msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.45; white-space: pre-line; }
+  .msg.bot { background: rgba(0, 0, 0, .055); color: var(--ink); border-bottom-left-radius: 6px; align-self: flex-start; }
+  .msg.me { background: var(--accent); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
+  .msg.typing { color: var(--muted); letter-spacing: 2px; }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
+  .qchip { background: rgba(0,113,227,.09); color: var(--accent-deep); border: 1px solid rgba(0,113,227,.25); border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .qchip:hover { background: rgba(0,113,227,.16); }
+  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+  .chat .cinput input { border-radius: 980px; padding: 11px 16px; font-size: 14.5px; }
+  .chat .cinput button { border: 0; background: var(--accent); color: #fff; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; }
+
   /* iOS instruction sheet */
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); opacity:0; pointer-events:none; transition:.3s; z-index: 200; }
   .sheet-bg.show { opacity:1; pointer-events:auto; }
@@ -154,6 +201,16 @@
       <p class="muted" style="margin-top:8px;font-size:13px"><span id="seats">26</span> of <span id="cap">26</span> seats free on the current run</p>
     </div>
 
+    <div class="card panel" id="cardpanel" style="display:none">
+      <h2>My tap card</h2>
+      <div class="tapcard">
+        <div class="chipic"></div>
+        <div><b>Nova RFID card</b><span class="uid" id="carduid"></span></div>
+        <span class="chip" id="cardstatus"></span>
+      </div>
+      <span class="lostlink" id="lostlink" onclick="reportLost()">Lost your card? Block it instantly</span>
+    </div>
+
     <div class="card panel" id="shop" style="display:none">
       <h2>Get a pass</h2>
       <div class="buy">
@@ -192,13 +249,23 @@
   <button class="btn block" style="margin-top:18px" onclick="closeSheet()">Got it</button>
 </div>
 
+<button class="chatfab" onclick="toggleChat()" id="chatfab" style="display:none">💬</button>
+<div class="chat" id="chat">
+  <div class="chead"><span class="logo" style="width:30px;height:30px;font-size:14px">N</span><div><b>Nova assistant</b><br><span>● online</span></div></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="cinput">
+    <input type="text" id="cin" placeholder="Ask me anything…">
+    <button onclick="sendChat()">➤</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="vendor/qrcode.min.js"></script>
 <script>
 let TOKEN = localStorage.getItem('nova_token') || '';
 let ME = JSON.parse(localStorage.getItem('nova_me') || 'null');
-let lastPayload = '', secondsLeft = 30, slotSeconds = 30;
+let lastPayload = '', secondsLeft = 30, slotSeconds = 30, LAST = null;
 
 const $ = id => document.getElementById(id);
 const auth = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
@@ -230,6 +297,7 @@ function enter() {
   $('name').textContent = ME.name;
   $('subid').textContent = ME.id + (ME.type === 'resident' ? ' · Nova Towers resident' : ' · Pass holder');
   $('shop').style.display = ME.type === 'resident' ? 'none' : '';
+  $('chatfab').style.display = '';
   showInstall();
   refresh();
 }
@@ -248,8 +316,17 @@ async function refresh() {
   if (r.status === 401) { signout(); return; }
   if (!r.ok) return;
   const d = await r.json();
+  LAST = d;
   secondsLeft = d.secondsLeft; slotSeconds = d.slotSeconds;
   if (d.payload !== lastPayload) { lastPayload = d.payload; drawQr(d.payload); }
+  if (d.card && d.card.uid) {
+    $('cardpanel').style.display = '';
+    $('carduid').textContent = 'UID ' + d.card.uid;
+    const blocked = d.card.status === 'blocked';
+    $('cardstatus').textContent = blocked ? 'Blocked' : 'Active';
+    $('cardstatus').className = 'chip ' + (blocked ? 'bad' : 'good');
+    $('lostlink').style.display = blocked ? 'none' : '';
+  } else $('cardpanel').style.display = 'none';
   $('status').textContent = d.status.label + ' · ' + d.status.detail;
   $('seats').textContent = d.seatsLeft; $('cap').textContent = d.capacity;
   $('seatfill').style.width = (100 * d.seatsLeft / d.capacity) + '%';
@@ -292,6 +369,147 @@ setInterval(() => {
 
 /* enter key submits */
 ['sid', 'pin'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
+
+/* ---- card: report lost ---- */
+async function reportLost() {
+  if (!confirm('Block your card now? It will flash red on every bus until the office re-activates it. Your QR pass keeps working.')) return;
+  const r = await fetch('/api/report-lost', { method: 'POST', headers: auth() });
+  const d = await r.json();
+  if (d.ok) { toast('Card blocked — your QR pass still works'); refresh(); }
+  else toast(d.error || 'Could not block the card');
+}
+
+/* ---- Nova assistant (rule-based, fully offline — and it acts, not just talks) ---- */
+let pending = null;
+
+function toggleChat() {
+  const c = $('chat');
+  c.classList.toggle('open');
+  if (c.classList.contains('open') && !$('msgs').children.length) {
+    botSay(`Hi ${ME.name.split(' ')[0]}! I'm Nova 👋 I can tell you the next shuttle, manage your pass or card — just ask.`,
+      ['Next shuttle?', 'Seats left?', ME.type === 'external' ? 'Buy a pass' : 'How does my pass work?', 'I lost my card']);
+  }
+}
+
+function addMsg(text, who) {
+  const m = document.createElement('div');
+  m.className = 'msg ' + who; m.textContent = text;
+  $('msgs').appendChild(m);
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+  return m;
+}
+function addChips(opts) {
+  const row = document.createElement('div');
+  row.className = 'chips-row';
+  row.innerHTML = opts.map(o => `<span class="qchip">${o}</span>`).join('');
+  row.querySelectorAll('.qchip').forEach(c => c.onclick = () => { row.remove(); userSay(c.textContent); });
+  $('msgs').appendChild(row);
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+}
+function botSay(text, chips) {
+  const t = addMsg('• • •', 'bot typing');
+  setTimeout(() => {
+    t.classList.remove('typing'); t.textContent = text;
+    if (chips && chips.length) addChips(chips);
+    $('msgs').scrollTop = $('msgs').scrollHeight;
+  }, 450 + Math.random() * 350);
+}
+function userSay(text) { addMsg(text, 'me'); respond(text); }
+function sendChat() {
+  const v = $('cin').value.trim();
+  if (!v) return;
+  $('cin').value = '';
+  userSay(v);
+}
+$('cin').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+async function respond(raw) {
+  const q = raw.toLowerCase();
+  const runs = LAST ? LAST.nextRuns : null;
+
+  /* pending confirmations first */
+  if (pending && /^(yes|yep|yeah|ok|sure|confirm|do it|block it)/.test(q)) {
+    const act = pending; pending = null;
+    if (act === 'block') {
+      const r = await fetch('/api/report-lost', { method: 'POST', headers: auth() });
+      const d = await r.json();
+      refresh();
+      return botSay(d.ok
+        ? 'Done — your card is blocked everywhere, effective immediately. 🚫 Any tap with it flashes red. Your QR pass keeps working, and the office can re-activate or replace the card.'
+        : 'Hmm: ' + (d.error || 'could not block it') + '. The office can help.');
+    }
+    if (act.startsWith('buy-')) {
+      const type = act.slice(4);
+      const r = await fetch('/api/buy', { method: 'POST', headers: auth(), body: JSON.stringify({ type }) });
+      const d = await r.json();
+      refresh();
+      return botSay(d.ok
+        ? `Done! Your ${type === 'single' ? 'single-ride' : type} pass is active — your QR is already green-lit. 🎉 (Payment is simulated in this demo.)`
+        : 'That purchase didn\'t go through: ' + (d.error || 'try again'));
+    }
+  }
+  if (pending && /^(no|nah|cancel|stop)/.test(q)) { pending = null; return botSay('No problem — cancelled. Anything else?'); }
+
+  /* lost / blocked card */
+  if (/lost|stolen|missing|block.*card|card.*(lost|stolen|gone|block)/.test(q)) {
+    if (!LAST || !LAST.card || !LAST.card.uid) return botSay('You don\'t have an RFID card on your account yet — the office can assign one. Your QR pass is your boarding pass meanwhile. ✅');
+    if (LAST.card.status === 'blocked') return botSay('Your card is already blocked 🚫 — nobody can ride with it. Visit the office for a replacement; your QR pass works as usual.');
+    pending = 'block';
+    return botSay('I can block your card right now — every bus will reject it instantly, and your QR pass keeps working. Block it?', ['Yes, block it', 'No, cancel']);
+  }
+
+  /* buying passes */
+  const buyMatch = q.match(/\b(single|one ride|day|week)/);
+  if (/buy|purchase|get a pass|pass price|how much|price/.test(q)) {
+    if (ME.type === 'resident') return botSay('Good news — you\'re a Nova resident, so the shuttle is already included in your fees. 🎉 No pass needed, ever.');
+    const p = LAST ? LAST.prices : { single: 5, day: 8, week: 30 };
+    if (buyMatch) {
+      const type = buyMatch[1].startsWith('one') || buyMatch[1] === 'single' ? 'single' : buyMatch[1] === 'day' ? 'day' : 'week';
+      pending = 'buy-' + type;
+      return botSay(`A ${type === 'single' ? 'single-ride' : type} pass is AED ${p[type]}. Confirm the purchase?`, ['Yes, buy it', 'No, cancel']);
+    }
+    return botSay(`Here's the menu:\n• Single ride — AED ${p.single}\n• Day pass — AED ${p.day}\n• Weekly pass — AED ${p.week}\n\nWhich one?`, ['Buy single', 'Buy day', 'Buy week']);
+  }
+
+  /* next shuttle / schedule */
+  if (/next|when|time|schedule|shuttle|bus.*come|come.*bus/.test(q)) {
+    if (!runs) return botSay('One sec — your pass is still loading. Ask me again in a moment!');
+    return botSay(`Next shuttles from Nova Towers:\n🚌 ${runs[0]} (next)\n🚌 ${runs[1]}\n🚌 ${runs[2]}\n\n${LAST.seatsLeft} of ${LAST.capacity} seats are free on the current run.`);
+  }
+
+  /* seats */
+  if (/seat|full|space|room/.test(q)) {
+    if (!LAST) return botSay('Still loading your pass — one moment!');
+    return botSay(LAST.seatsLeft > 5
+      ? `Plenty of room — ${LAST.seatsLeft} of ${LAST.capacity} seats free on the current run. 🟢`
+      : `It's filling up — only ${LAST.seatsLeft} seats left. I'd head down now! 🏃`);
+  }
+
+  /* where's the bus */
+  if (/where|track|location|far/.test(q)) {
+    return botSay('The shuttle is rolling between Nova Towers and campus — the live tracker is right on this page, below your pass. 🚌 (Live GPS lands in the production version.)');
+  }
+
+  /* how it works / security */
+  if (/how|work|secure|safe|screenshot|qr|code|rotat/.test(q)) {
+    return botSay('Your QR is cryptographically signed and re-generates every 30 seconds — same maths as a banking OTP. 🔐 Screenshots expire before they can be shared, a borrowed pass shows the wrong photo to the driver, and one green per trip stops pass-backs at the window.');
+  }
+
+  /* card info */
+  if (/card|rfid|nfc|tap/.test(q)) {
+    if (LAST && LAST.card && LAST.card.uid) {
+      return botSay(`Your RFID card (UID ${LAST.card.uid}) is ${LAST.card.status === 'blocked' ? 'blocked 🚫' : 'active ✅'} — tap it on the bus reader and you're aboard, no phone needed. If it ever goes missing, just tell me "I lost my card".`);
+    }
+    return botSay('You don\'t have an RFID card yet — the office can stick one on your student card in seconds (it\'s an NTAG sticker). Meanwhile your QR pass boards you just fine. ✅');
+  }
+
+  /* greetings & thanks */
+  if (/^(hi|hello|hey|salam|yo)\b/.test(q)) return botSay(`Hey ${ME.name.split(' ')[0]}! What do you need?`, ['Next shuttle?', 'Seats left?', 'I lost my card']);
+  if (/thank|great|nice|cool|awesome/.test(q)) return botSay('Anytime! Safe ride 🚌💨');
+
+  /* fallback */
+  return botSay('I can help with shuttle times, seats, passes, and your RFID card. Try one of these:', ['Next shuttle?', 'Seats left?', 'Buy a pass', 'I lost my card']);
+}
 
 /* ---- Add to phone (PWA install) ---- */
 let deferredPrompt = null;

@@ -115,18 +115,35 @@ Render's environment settings.
 - Every green **and** red is stored with time, bus, channel (qr / nfc / manual) and
   reason. Enforcement moves to the office; drivers never argue.
 
-### NFC card stickers (option B)
+### RFID tap cards (first-class lane)
 
 The current student card is laminated paper — no chip. An **NTAG NFC sticker**
-(≈ AED 1–2 each) on the back of the card turns it into a tap card:
+(≈ AED 1–2 each) on the back of the card turns it into a tap card, and the
+validator's **default mode is now the card lane**:
 
-- The validator already supports it: on an Android device, Chrome's Web NFC reads
-  the sticker serial automatically (an "NFC reader active" badge appears).
-- Admin assigns a sticker to a student in the console ("+ assign" in the Students
-  table). Tap → same green/red + photo + anti-passback as QR.
+- **USB RFID readers just work.** Cheap readers (≈ AED 50, e.g. the 125 kHz /
+  ACR122U keyboard-wedge type) act as keyboards: plug one into the validator
+  device, and every tap types the card UID straight into the reader field —
+  no drivers, no software. Green/red + photo + beep, instantly.
+- On an Android validator, Chrome's Web NFC also reads stickers tapped on the
+  back of the device (an "NFC reader active" badge appears).
+- **No hardware? Demo anyway:** the card lane has a *Simulate tap* button with
+  Sara's demo card (`04a25c1e`) and an unknown card.
+- **Full card lifecycle:** admin assigns a card in the Students table, can
+  **block / unblock** it in one click; students can self-block a lost card from
+  the pass page (or just tell the chatbot "I lost my card") — every bus rejects
+  it instantly, and the QR pass keeps working.
 - Honest trade-off: a bare sticker serial is static, so it's weaker than the
-  rotating QR — photo-on-scan and anti-passback still catch misuse. Treat it as
-  the convenience fallback, QR as the primary.
+  rotating QR — photo-on-scan, anti-passback and the instant kill switch are
+  the compensating controls.
+
+### Nova assistant (built-in chatbot)
+
+A floating assistant lives on the pass page. It's rule-based and fully offline —
+no API keys — and it *acts*, not just answers: it tells the next shuttles and
+seats left, sells passes in-chat ("buy a day pass" → confirm → active), explains
+the security, and blocks a lost card in one message. For production it can be
+swapped for a Claude-powered concierge; the conversation UI is already there.
 
 ## Why no Redis (yet)
 

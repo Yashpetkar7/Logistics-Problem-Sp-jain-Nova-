@@ -33,9 +33,12 @@ function newSecret() { return crypto.randomBytes(16).toString('hex'); }
 
 function seedDb() {
   const mk = (id, name, type, initials, bg) => ({
-    id, name, type, secret: newSecret(), pin: '1234', cardUid: null,
+    id, name, type, secret: newSecret(), pin: '1234', cardUid: null, cardStatus: null,
     photo: avatar(initials, bg), createdAt: new Date().toISOString()
   });
+  // Sara ships with a demo RFID card so the tap-card lane works out of the box
+  const sara = mk('NS-102', 'Sara Khan', 'resident', 'SK', '#0E7C66');
+  sara.cardUid = '04a25c1e'; sara.cardStatus = 'active';
   return {
     config: {
       brand: 'Nova Shuttle',
@@ -47,7 +50,7 @@ function seedDb() {
     },
     students: [
       mk('NS-101', 'Aarav Shah', 'resident', 'AS', '#6C4AB6'),
-      mk('NS-102', 'Sara Khan', 'resident', 'SK', '#0E7C66'),
+      sara,
       mk('NS-103', 'Rohan Mehta', 'resident', 'RM', '#B0532A'),
       mk('NS-104', 'Fatima Ali', 'resident', 'FA', '#22577A'),
       mk('NS-105', 'Daniel Fernandes', 'resident', 'DF', '#7A2257'),
@@ -68,6 +71,7 @@ function loadDb() {
     for (const s of db.students) {           // migrate older databases
       if (!s.pin) s.pin = '1234';
       if (s.cardUid === undefined) s.cardUid = null;
+      if (s.cardStatus === undefined) s.cardStatus = s.cardUid ? 'active' : null;
     }
   } else {
     db = seedDb();
@@ -427,6 +431,10 @@ const server = http.createServer(async (req, res) => {
         recordTap(currentTrip(busId, true), null, 'red', 'Unregistered card tap', 'nfc');
         return sendJson(res, 200, { result: 'red', reason: 'Card not registered', student: null });
       }
+      if (s.cardStatus === 'blocked') {
+        recordTap(currentTrip(busId, true), s.id, 'red', 'Blocked card used', 'nfc');
+        return sendJson(res, 200, deny(s, 'Card blocked — see the office'));
+      }
       return sendJson(res, 200, checkBoard(s, busId, 'nfc'));
     }
 
@@ -481,8 +489,17 @@ const server = http.createServer(async (req, res) => {
         seatsLeft: trip ? seatsLeft(trip) : db.config.capacity,
         capacity: db.config.capacity,
         nextRuns: nextRuns(),
-        prices: db.config.prices
+        prices: db.config.prices,
+        card: { uid: me.cardUid, status: me.cardStatus }
       });
+    }
+
+    if (p === '/api/report-lost' && req.method === 'POST') {
+      if (!me) return sendJson(res, 401, { error: 'Sign in first' });
+      if (!me.cardUid) return sendJson(res, 404, { error: 'No card on file for your account' });
+      me.cardStatus = 'blocked';
+      saveDb();
+      return sendJson(res, 200, { ok: true, cardStatus: 'blocked' });
     }
 
     if (p === '/api/buy' && req.method === 'POST') {
@@ -510,7 +527,7 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
       return sendJson(res, 200, db.students.map(s => ({
         id: s.id, name: s.name, type: s.type, photo: s.photo,
-        pin: s.pin, cardUid: s.cardUid, status: passStatus(s)
+        pin: s.pin, cardUid: s.cardUid, cardStatus: s.cardStatus, status: passStatus(s)
       })));
     }
 
@@ -539,8 +556,20 @@ const server = http.createServer(async (req, res) => {
       const s = db.students.find(x => x.id === b.sid);
       if (!s) return sendJson(res, 404, { error: 'unknown student' });
       s.cardUid = String(b.uid || '').replace(/[^a-fA-F0-9]/g, '').toLowerCase() || null;
+      s.cardStatus = s.cardUid ? 'active' : null;
       saveDb();
       return sendJson(res, 200, { ok: true, cardUid: s.cardUid });
+    }
+
+    if (p === '/api/card-status' && req.method === 'POST') {
+      if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
+      const b = await readBody(req);
+      const s = db.students.find(x => x.id === b.sid);
+      if (!s || !s.cardUid) return sendJson(res, 404, { error: 'no card on file' });
+      if (!['active', 'blocked'].includes(b.status)) return sendJson(res, 400, { error: 'bad status' });
+      s.cardStatus = b.status;
+      saveDb();
+      return sendJson(res, 200, { ok: true, cardStatus: s.cardStatus });
     }
 
     if (p === '/api/admin/analytics') {

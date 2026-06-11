@@ -198,11 +198,18 @@ async function refresh() {
   ).join('') || '<tr><td colspan="6" class="muted">No taps yet — scan something on the validator.</td></tr>';
 
   const students = await (await fetch('/api/students', { headers: auth() })).json();
-  $('stu').querySelector('tbody').innerHTML = students.map(s =>
-    `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
+  $('stu').querySelector('tbody').innerHTML = students.map(s => {
+    const blocked = s.cardStatus === 'blocked';
+    const cardCell = s.cardUid
+      ? `<span class="pin">${s.cardUid.slice(0, 8)}</span>
+         <span class="chip ${blocked ? 'bad' : 'good'}" style="margin:0 4px">${blocked ? 'blocked' : 'active'}</span>
+         <span class="cardlink" onclick="setCard('${s.id}','${blocked ? 'active' : 'blocked'}')">${blocked ? 'unblock' : 'block'}</span>`
+      : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`;
+    return `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
      <td><span class="pin">${s.pin}</span></td>
-     <td>${s.cardUid ? `<span class="pin">${s.cardUid.slice(0, 8)}…</span>` : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`}</td>
-     <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`).join('');
+     <td>${cardCell}</td>
+     <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`;
+  }).join('');
 }
 
 function drawChart(perTrip) {
@@ -230,6 +237,12 @@ function drawChart(perTrip) {
     ctx.fillStyle = '#86868b'; ctx.font = '500 14px -apple-system, Segoe UI';
     ctx.fillText(t.label, x + bw / 2, 352);
   });
+}
+
+async function setCard(sid, status) {
+  await fetch('/api/card-status', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, status }) });
+  toast(status === 'blocked' ? 'Card blocked — taps will flash red' : 'Card re-activated');
+  refresh();
 }
 
 async function assign(sid, name) {
