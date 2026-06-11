@@ -128,7 +128,7 @@
     <input type="text" id="manualId" placeholder="Fallback: student ID, e.g. NS-101 (dead phone)">
     <button class="btn small" onclick="manual()">Check in</button>
   </div>
-  <p class="hint"><b style="color:#c8c8cf">Card lane:</b> plug any USB RFID reader into this device — it types the card UID like a keyboard, no drivers, and taps land instantly. On an Android validator, NFC stickers also tap straight onto the back of the device. Anti-passback is on: one green per trip — a second tap goes red. Press "End trip" when the bus departs.</p>
+  <p class="hint"><b style="color:#c8c8cf">Card lane:</b> plug any USB RFID reader into this device — it types the card UID like a keyboard, no drivers, and taps land instantly. On an Android validator, NFC stickers also tap straight onto the back of the device. Anti-passback is on: one green per trip — a second tap goes red. Press "End trip" when the bus departs. · <a href="#" onclick="pairDevice();return false" style="color:#0a84ff;text-decoration:none">⚙ device key</a></p>
 </div>
 
 <script src="vendor/jsQR.js"></script>
@@ -223,7 +223,32 @@ async function startNfc() {
   } catch (e) { /* permission denied or unsupported — QR still works */ }
 }
 
-const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+/* In production the server sets VALIDATOR_KEY and rejects scans without it.
+   Pair this device once via the ⚙ link below — the key lives in localStorage. */
+let DKEY = localStorage.getItem('nova_device_key') || '';
+function pairDevice() {
+  const k = prompt('Device key for this validator\n(set VALIDATOR_KEY on the server, paste the same value here):', DKEY);
+  if (k !== null) { DKEY = k.trim(); localStorage.setItem('nova_device_key', DKEY); }
+}
+const post = (url, body) => fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', ...(DKEY ? { 'X-Device-Key': DKEY } : {}) },
+  body: JSON.stringify(body)
+});
+
+/* live counters — every validator on the route updates the instant any door scans */
+try {
+  const es = new EventSource('/api/events');
+  const onLive = e => {
+    const d = JSON.parse(e.data);
+    if (d.busId !== BUS) return;
+    $('boarded').textContent = d.boarded;
+    $('seats').textContent = d.seatsLeft;
+    $('denied').textContent = d.denied;
+  };
+  es.addEventListener('tap', onLive);
+  es.addEventListener('trip', onLive);
+} catch (e) {}
 
 async function scan(payload) {
   busy = true;

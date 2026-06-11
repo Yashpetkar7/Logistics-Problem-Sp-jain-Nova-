@@ -30,17 +30,21 @@
   .err { color: var(--bad); font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
   .hint { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
 
-  /* wallet card */
+  /* wallet card — 3D tilt with a moving light sheen */
+  .wallet-scene { perspective: 900px; }
   .wallet {
     border-radius: 26px; padding: 24px 24px 28px; color: #fff;
     background: linear-gradient(150deg, #101014 0%, #1c1c26 55%, #16161e 100%);
     box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
     position: relative; overflow: hidden;
+    transform-style: preserve-3d; will-change: transform;
+    transition: box-shadow .3s;
   }
+  .wallet.tilting { box-shadow: 0 34px 80px rgba(10, 30, 90, .45); }
   .wallet::before {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.06) 45%, transparent 60%);
-    pointer-events: none;
+    content: ''; position: absolute; inset: -40%;
+    background: radial-gradient(420px 320px at var(--shx, 30%) var(--shy, 20%), rgba(255,255,255,.13), transparent 60%);
+    pointer-events: none; transition: opacity .3s;
   }
   .wallet .head { display: flex; align-items: center; gap: 13px; margin-bottom: 20px; }
   .wallet img.face { width: 50px; height: 50px; border-radius: 14px; }
@@ -176,7 +180,8 @@
 
   <!-- pass -->
   <section id="app" style="display:none">
-    <div class="wallet">
+    <div class="wallet-scene">
+    <div class="wallet" id="wallet">
       <div class="head">
         <img class="face" id="photo" alt="">
         <div><b id="name"></b><span id="subid"></span></div>
@@ -187,6 +192,7 @@
       <div class="meter-label">New code in <span id="secs">30</span> s — screenshots won't board</div>
       <div class="statusrow"><span class="chip" id="status"></span></div>
     </div>
+    </div><!-- /wallet-scene -->
 
     <button class="wallet-btn" id="installBtn" onclick="addToPhone()" style="display:none">
       <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#fff" stroke-width="2"/><path d="M3 10h18" stroke="#fff" stroke-width="2"/><circle cx="17" cy="14.5" r="1.4" fill="#fff"/></svg>
@@ -358,6 +364,42 @@ setInterval(() => {
 }, 1000);
 setInterval(() => { if (TOKEN && $('app').style.display !== 'none') refresh(); }, 10000);
 
+/* ---- 3D tilt on the wallet card (mouse on desktop, motion on Android) ---- */
+(() => {
+  const w = $('wallet');
+  function tilt(x, y) {   // x,y in -0.5..0.5
+    w.style.transform = `rotateY(${x * 9}deg) rotateX(${-y * 7}deg)`;
+    w.style.setProperty('--shx', (50 + x * 90) + '%');
+    w.style.setProperty('--shy', (35 + y * 70) + '%');
+  }
+  w.addEventListener('pointermove', e => {
+    const r = w.getBoundingClientRect();
+    w.classList.add('tilting');
+    tilt((e.clientX - r.left) / r.width - .5, (e.clientY - r.top) / r.height - .5);
+  });
+  w.addEventListener('pointerleave', () => { w.classList.remove('tilting'); w.style.transform = ''; });
+  if ('DeviceOrientationEvent' in window && !/iphone|ipad/i.test(navigator.userAgent)) {
+    addEventListener('deviceorientation', e => {
+      if (e.gamma === null) return;
+      tilt(Math.max(-.5, Math.min(.5, e.gamma / 60)), Math.max(-.5, Math.min(.5, (e.beta - 40) / 80)));
+    });
+  }
+})();
+
+/* ---- live data: seat counts update the moment anyone boards, no refresh ---- */
+try {
+  const es = new EventSource('/api/events');
+  const onLive = e => {
+    const d = JSON.parse(e.data);
+    if ($('app').style.display === 'none') return;
+    $('seats').textContent = d.seatsLeft;
+    $('cap').textContent = d.capacity;
+    $('seatfill').style.width = (100 * d.seatsLeft / d.capacity) + '%';
+  };
+  es.addEventListener('tap', onLive);
+  es.addEventListener('trip', onLive);
+} catch (e) {}
+
 /* toy bus animation */
 let bx = 28, dir = 1;
 setInterval(() => {
@@ -423,8 +465,12 @@ function sendChat() {
 }
 $('cin').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 
+let INFO = null;
+fetch('/api/info').then(r => r.json()).then(d => INFO = d).catch(() => {});
+
 async function respond(raw) {
-  const q = raw.toLowerCase();
+  // normalise: lowercase, strip punctuation, collapse spaces — typo-friendlier matching
+  const q = raw.toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
   const runs = LAST ? LAST.nextRuns : null;
 
   /* pending confirmations first */
@@ -471,10 +517,32 @@ async function respond(raw) {
     return botSay(`Here's the menu:\n• Single ride — AED ${p.single}\n• Day pass — AED ${p.day}\n• Weekly pass — AED ${p.week}\n\nWhich one?`, ['Buy single', 'Buy day', 'Buy week']);
   }
 
+  /* operating hours / first & last bus */
+  if (/first bus|last bus|how late|until when|what time.*(start|stop|end)|operating|hours of/.test(q)) {
+    const f = INFO ? INFO.firstRun : '07:00', l = INFO ? INFO.lastRun : '22:00', ev = INFO ? INFO.runEveryMin : 30;
+    return botSay(`The shuttle runs from ${f} to ${l}, every ${ev} minutes, all day. 🕖 First bus ${f}, last bus ${l} — and your pass works on all of them.`);
+  }
+
   /* next shuttle / schedule */
-  if (/next|when|time|schedule|shuttle|bus.*come|come.*bus/.test(q)) {
+  if (/next|when|time|schedule|shuttle|bus.*com|com.*bus|timing/.test(q)) {
     if (!runs) return botSay('One sec — your pass is still loading. Ask me again in a moment!');
     return botSay(`Next shuttles from Nova Towers:\n🚌 ${runs[0]} (next)\n🚌 ${runs[1]}\n🚌 ${runs[2]}\n\n${LAST.seatsLeft} of ${LAST.capacity} seats are free on the current run.`);
+  }
+
+  /* install / add to phone */
+  if (/install|add to (phone|home)|home screen|wallet|like an app|download/.test(q)) {
+    addToPhone();
+    return botSay('Opening the install flow for you 📲 — the pass lands on your home screen like an app and even opens offline. (The QR always stays live, so no stale codes.)');
+  }
+
+  /* talk to a human / office */
+  if (/human|person|staff|someone|office|complain|complaint|refund|wrong charge|talk to/.test(q)) {
+    return botSay('For anything I can\'t fix — replacements, refunds, disputes — the logistics office is your stop. 🏢 Find them at reception, ground floor of the campus building, 9:00–17:00. Everything on your account is logged, so they can see exactly what happened.');
+  }
+
+  /* who/what is the bot */
+  if (/who are you|are you a (bot|robot|ai|human)|are you (ai|real)|what are you/.test(q)) {
+    return botSay('I\'m Nova — the shuttle\'s built-in assistant. 🤖 I run right here in your pass (no internet AI needed), and I can actually do things: check shuttles, sell passes, and block lost cards. Try me!');
   }
 
   /* seats */
@@ -503,9 +571,12 @@ async function respond(raw) {
     return botSay('You don\'t have an RFID card yet — the office can stick one on your student card in seconds (it\'s an NTAG sticker). Meanwhile your QR pass boards you just fine. ✅');
   }
 
-  /* greetings & thanks */
-  if (/^(hi|hello|hey|salam|yo)\b/.test(q)) return botSay(`Hey ${ME.name.split(' ')[0]}! What do you need?`, ['Next shuttle?', 'Seats left?', 'I lost my card']);
-  if (/thank|great|nice|cool|awesome/.test(q)) return botSay('Anytime! Safe ride 🚌💨');
+  /* greetings & thanks — Dubai campus speaks many languages */
+  if (/^(hi|hello|hey|yo|salam|salaam|assalam|marhaba|namaste|hola|bonjour)\b/.test(q)) {
+    return botSay(`Hey ${ME.name.split(' ')[0]}! What do you need?`, ['Next shuttle?', 'Seats left?', 'I lost my card']);
+  }
+  if (/thank|shukran|shukriya|great|nice|cool|awesome|perfect|love (it|this)/.test(q)) return botSay('Anytime! Safe ride 🚌💨');
+  if (/bye|see you|good night|goodnight/.test(q)) return botSay('Bye! I\'m always here in the corner if you need me 👋');
 
   /* fallback */
   return botSay('I can help with shuttle times, seats, passes, and your RFID card. Try one of these:', ['Next shuttle?', 'Seats left?', 'Buy a pass', 'I lost my card']);

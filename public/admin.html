@@ -42,6 +42,16 @@
   .cardlink { color: var(--accent); cursor: pointer; font-weight: 600; font-size: 13px; }
   .enroll input, .enroll select { margin-bottom: 12px; }
   input[type=file] { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  @keyframes rowflash { from { background: rgba(52,199,89,.22) } to { background: transparent } }
+  tr.flash td { animation: rowflash 1.6s ease-out; }
+  .livedot { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color: var(--good-deep); }
+  .livedot i { width:8px; height:8px; border-radius:50%; background: var(--good); animation: lpulse 1.6s infinite; }
+  @keyframes lpulse { 0%,100% { box-shadow:0 0 0 0 rgba(52,199,89,.5) } 70% { box-shadow:0 0 0 6px rgba(52,199,89,0) } }
+  .auditlist { font-size: 13px; }
+  .auditlist div { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+  .auditlist div:last-child { border-bottom: 0; }
+  .auditlist .t { color: var(--muted); flex: none; width: 64px; }
+  .auditlist b { font-weight: 600; }
 </style>
 </head>
 <body>
@@ -139,9 +149,14 @@
     </div>
   </div>
 
-  <div class="card">
-    <h2>Recent taps</h2>
+  <div class="card" style="margin-bottom:16px">
+    <h2>Live boarding feed <span class="livedot"><i></i>LIVE</span> <span class="muted" style="font-weight:400">— rows appear the moment a door scans</span></h2>
     <div class="scroll"><table id="taps"><thead><tr><th></th><th>Time</th><th>Who</th><th>Bus</th><th>Via</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Security audit <span class="muted" style="font-weight:400">— every privileged action, journaled</span></h2>
+    <div class="auditlist" id="audit"></div>
   </div>
   </div><!-- /tab-people -->
 </div>
@@ -170,7 +185,28 @@ function signout() { localStorage.removeItem('nova_admin'); location.reload(); }
 function enter() {
   $('gate').style.display = 'none';
   $('app').style.display = '';
-  refresh(); setInterval(refresh, 4000);
+  refresh(); setInterval(refresh, 15000);   // slow fallback — live events do the real work
+  startLive();
+}
+
+/* ---- real-time: an admin-token stream pushes every tap into the console ---- */
+let refreshTimer = null;
+function startLive() {
+  try {
+    const es = new EventSource('/api/events?token=' + encodeURIComponent(TOKEN));
+    const bump = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 400); };
+    es.addEventListener('tap', e => {
+      const d = JSON.parse(e.data);
+      const tb = $('taps').querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.className = 'flash';
+      tr.innerHTML = `<td><span class="dot ${d.result === 'green' ? 'g' : 'r'}"></span></td><td>${fmt(d.time)}</td><td>${d.name || '—'}</td><td>${d.busId}</td><td>${d.via || 'qr'}</td><td>${d.reason}</td>`;
+      tb.prepend(tr);
+      while (tb.children.length > 30) tb.lastChild.remove();
+      bump();
+    });
+    es.addEventListener('trip', bump);
+  } catch (e) { setInterval(refresh, 4000); }
 }
 
 async function refresh() {
@@ -206,10 +242,14 @@ async function refresh() {
          <span class="cardlink" onclick="setCard('${s.id}','${blocked ? 'active' : 'blocked'}')">${blocked ? 'unblock' : 'block'}</span>`
       : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`;
     return `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
-     <td><span class="pin">${s.pin}</span></td>
+     <td><span class="pin">••••</span> <span class="cardlink" onclick="resetPin('${s.id}','${s.name.replace(/'/g, '')}')">reset</span></td>
      <td>${cardCell}</td>
      <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`;
   }).join('');
+
+  $('audit').innerHTML = (d.audit || []).map(a =>
+    `<div><span class="t">${fmt(a.time)}</span><span><b>${a.action}</b> ${a.detail || ''}</span></div>`
+  ).join('') || '<div class="muted">No privileged actions yet.</div>';
 }
 
 function drawChart(perTrip) {
@@ -237,6 +277,14 @@ function drawChart(perTrip) {
     ctx.fillStyle = '#86868b'; ctx.font = '500 14px -apple-system, Segoe UI';
     ctx.fillText(t.label, x + bw / 2, 352);
   });
+}
+
+async function resetPin(sid, name) {
+  if (!confirm(`Generate a new PIN for ${name}? The old one stops working immediately.`)) return;
+  const r = await fetch('/api/reset-pin', { method: 'POST', headers: auth(), body: JSON.stringify({ sid }) });
+  const d = await r.json();
+  if (d.ok) alert(`New PIN for ${name}: ${d.pin}\n\nWrite it down now — PINs are stored hashed and can't be shown again.`);
+  refresh();
 }
 
 async function setCard(sid, status) {

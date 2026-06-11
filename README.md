@@ -17,6 +17,20 @@ screen like an app on both iPhone and Android — Android/Chrome gets the native
 install prompt, iOS gets a guided 3-step sheet. The pass shell opens offline; the
 QR code itself is always fetched live so a stale code can never board.
 
+It runs on **live data**: every screen subscribes to a real-time event stream
+(`/api/events`) — a scan at the bus door appears in the admin console, updates the
+landing-page counter, and moves the seat bar on every student's pass *the moment it
+happens*, no refresh. The landing page is an **immersive 3D experience** (a low-poly
+shuttle floating over a neon grid, built with Three.js, fully offline), and the
+student's wallet card tilts in 3D under your finger.
+
+The backend ships **hardened**: salted-scrypt PIN hashes, expiring sessions,
+rate-limited logins, device-keyed validators, security headers (CSP, frame-deny,
+nosniff), tiered event streams (identities only flow to admin tokens), and a
+security audit journal visible in the console. See **`PRODUCTION.md`** for the
+two-step path to production (connect a database via `schema.sql`, plug in
+hardware) — everything else is already here.
+
 Built for SP Jain · Nova Towers, but **brand, fleet, capacity, and prices are all
 configuration** (`config` in `data/db.json`) — any campus, shuttle service, or gated
 community with the same problem can run it.

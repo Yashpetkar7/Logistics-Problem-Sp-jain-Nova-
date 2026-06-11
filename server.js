@@ -19,6 +19,25 @@ const PORT = Number(process.env.PORT) || 3000;
 const SLOT_SECONDS = 30;      // QR rotates every 30 s
 const SLOT_DRIFT = 1;         // accept ±1 slot for clock drift
 const ADMIN_PASS = process.env.ADMIN_PASS || 'nova-admin';
+const DEVICE_KEY = process.env.VALIDATOR_KEY || null;  // set in production: validators must present it
+const TTL_STUDENT = 12 * 3600 * 1000;   // student session: 12 h
+const TTL_ADMIN = 8 * 3600 * 1000;      // admin session: 8 h
+
+/* ---------------- guardrails: rate limiting ---------------- */
+
+const BUCKETS = new Map();    // key -> { n, reset }
+function limited(key, max, windowMs) {
+  const now = Date.now();
+  let b = BUCKETS.get(key);
+  if (!b || now > b.reset) { b = { n: 0, reset: now + windowMs }; BUCKETS.set(key, b); }
+  return ++b.n > max;
+}
+setInterval(() => {           // sweep stale buckets
+  const now = Date.now();
+  for (const [k, b] of BUCKETS) if (now > b.reset) BUCKETS.delete(k);
+}, 60000).unref();
+
+function ip(req) { return req.socket.remoteAddress || '?'; }
 
 /* ---------------- database (one JSON file) ---------------- */
 
@@ -31,11 +50,29 @@ function avatar(initials, bg) {
 
 function newSecret() { return crypto.randomBytes(16).toString('hex'); }
 
+/* PINs are stored as salted scrypt hashes — a leaked db.json exposes no PINs */
+function hashPin(pin, salt) { return crypto.scryptSync(String(pin), salt, 32).toString('hex'); }
+function setPin(student, pin) {
+  student.pinSalt = crypto.randomBytes(8).toString('hex');
+  student.pinHash = hashPin(pin, student.pinSalt);
+  delete student.pin;
+}
+function checkPin(student, pin) {
+  if (!student.pinHash) return false;
+  const a = Buffer.from(hashPin(pin, student.pinSalt), 'hex');
+  const b = Buffer.from(student.pinHash, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function seedDb() {
-  const mk = (id, name, type, initials, bg) => ({
-    id, name, type, secret: newSecret(), pin: '1234', cardUid: null, cardStatus: null,
-    photo: avatar(initials, bg), createdAt: new Date().toISOString()
-  });
+  const mk = (id, name, type, initials, bg) => {
+    const s = {
+      id, name, type, secret: newSecret(), cardUid: null, cardStatus: null,
+      photo: avatar(initials, bg), createdAt: new Date().toISOString()
+    };
+    setPin(s, '1234');   // demo PIN — hashed at rest like production
+    return s;
+  };
   // Sara ships with a demo RFID card so the tap-card lane works out of the box
   const sara = mk('NS-102', 'Sara Khan', 'resident', 'SK', '#0E7C66');
   sara.cardUid = '04a25c1e'; sara.cardStatus = 'active';
@@ -59,8 +96,16 @@ function seedDb() {
       mk('NS-108', 'Lily Chen', 'external', 'LC', '#8E5572')
     ],
     passes: [],   // purchased passes for external students
-    trips: []     // every trip with its taps (the audit trail)
+    trips: [],    // every trip with its taps (the audit trail)
+    audit: []     // admin actions + security events
   };
+}
+
+/* every privileged action is journaled — capped so the file can't balloon */
+function logAudit(action, detail) {
+  db.audit.push({ time: new Date().toISOString(), action, detail: detail || '' });
+  if (db.audit.length > 500) db.audit = db.audit.slice(-400);
+  saveDb();
 }
 
 let db;
@@ -69,10 +114,12 @@ function loadDb() {
   if (fs.existsSync(DBF)) {
     db = JSON.parse(fs.readFileSync(DBF, 'utf8'));
     for (const s of db.students) {           // migrate older databases
-      if (!s.pin) s.pin = '1234';
       if (s.cardUid === undefined) s.cardUid = null;
       if (s.cardStatus === undefined) s.cardStatus = s.cardUid ? 'active' : null;
+      if (!s.pinHash) setPin(s, s.pin || '1234');   // hash any legacy plain PINs
     }
+    if (!db.audit) db.audit = [];
+    saveDbNow();
   } else {
     db = seedDb();
     saveDbNow();
@@ -87,17 +134,44 @@ function saveDbNow() { fs.writeFileSync(DBF, JSON.stringify(db, null, 2)); }
 
 /* ---------------- sessions (in-memory) ---------------- */
 
-const SESSIONS = new Map();   // token -> { kind: 'student'|'admin', sid? }
+const SESSIONS = new Map();   // token -> { kind: 'student'|'admin', sid?, exp }
 
-function makeToken(payload) {
+function makeToken(payload, ttl) {
   const t = crypto.randomBytes(24).toString('hex');
-  SESSIONS.set(t, payload);
+  SESSIONS.set(t, { ...payload, exp: Date.now() + ttl });
   return t;
+}
+function getSession(token) {
+  const s = SESSIONS.get(token);
+  if (!s) return null;
+  if (Date.now() > s.exp) { SESSIONS.delete(token); return null; }   // expired
+  return s;
 }
 function session(req) {
   const h = req.headers.authorization || '';
-  return SESSIONS.get(h.replace(/^Bearer\s+/i, '')) || null;
+  return getSession(h.replace(/^Bearer\s+/i, ''));
 }
+setInterval(() => {           // sweep expired sessions
+  const now = Date.now();
+  for (const [t, s] of SESSIONS) if (now > s.exp) SESSIONS.delete(t);
+}, 300000).unref();
+
+/* ---------------- live events (Server-Sent Events) ----------------
+   Every screen subscribes to /api/events. Public clients get anonymous
+   seat/state updates; an admin token upgrades the stream to rich events. */
+
+const SSE_CLIENTS = new Set();   // { res, admin }
+
+function broadcast(type, pub, adm) {
+  for (const c of SSE_CLIENTS) {
+    const data = c.admin ? (adm || pub) : pub;
+    if (!data) continue;
+    try { c.res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); } catch (e) {}
+  }
+}
+setInterval(() => {              // heartbeat keeps proxies from closing streams
+  for (const c of SSE_CLIENTS) { try { c.res.write(':hb\n\n'); } catch (e) {} }
+}, 25000).unref();
 
 /* ---------------- pass codes (TOTP-style) ---------------- */
 
@@ -151,8 +225,14 @@ function seatsLeft(trip) {
 }
 
 function recordTap(trip, sid, result, reason, via) {
-  trip.taps.push({ time: new Date().toISOString(), sid, result, reason, via: via || 'qr' });
+  const tap = { time: new Date().toISOString(), sid, result, reason, via: via || 'qr' };
+  trip.taps.push(tap);
   saveDb();
+  const boarded = trip.taps.filter(t => t.result === 'green').length;
+  const denied = trip.taps.filter(t => t.result === 'red').length;
+  const pub = { busId: trip.busId, boarded, denied, seatsLeft: Math.max(0, db.config.capacity - boarded), capacity: db.config.capacity };
+  const who = sid ? (db.students.find(s => s.id === sid) || {}).name : null;
+  broadcast('tap', pub, { ...pub, ...tap, name: who || sid || '—' });
 }
 
 function checkBoard(student, busId, via) {
@@ -359,8 +439,17 @@ const MIME = {
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2'
 };
 
+/* security headers on every response — clickjacking, MIME-sniffing, referrer leaks */
+const SEC_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Permissions-Policy': 'geolocation=(), microphone=()',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'"
+};
+
 function sendJson(res, code, obj) {
-  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...SEC_HEADERS });
   res.end(JSON.stringify(obj));
 }
 
@@ -392,32 +481,87 @@ const server = http.createServer(async (req, res) => {
   const me = ses && ses.kind === 'student' ? db.students.find(s => s.id === ses.sid) : null;
 
   try {
+    /* global flood guard — generous for kiosks, fatal for scripts */
+    if (p.startsWith('/api/') && limited('g:' + ip(req), 600, 60000)) {
+      return sendJson(res, 429, { error: 'Too many requests — slow down' });
+    }
+
+    /* ---- live event stream ---- */
+    if (p === '/api/events') {
+      const tok = url.searchParams.get('token') || '';
+      const s = getSession(tok);
+      const client = { res, admin: !!(s && s.kind === 'admin') };
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive', ...SEC_HEADERS
+      });
+      res.write(': connected\n\n');
+      SSE_CLIENTS.add(client);
+      req.on('close', () => SSE_CLIENTS.delete(client));
+      return;
+    }
+
+    if (p === '/api/health') {
+      const today = new Date().toDateString();
+      let boardingsToday = 0;
+      for (const t of db.trips) for (const tap of t.taps) {
+        if (tap.result === 'green' && new Date(tap.time).toDateString() === today) boardingsToday++;
+      }
+      return sendJson(res, 200, {
+        ok: true, version: 'v5', uptimeSec: Math.floor(process.uptime()),
+        students: db.students.length, trips: db.trips.length, boardingsToday,
+        liveClients: SSE_CLIENTS.size, deviceKeyRequired: !!DEVICE_KEY
+      });
+    }
+
     /* ---- open endpoints ---- */
     if (p === '/api/info') {
       return sendJson(res, 200, {
         brand: db.config.brand, org: db.config.org,
         ips: lanIps(), port: PORT, prices: db.config.prices,
-        capacity: db.config.capacity, buses: db.config.buses
+        capacity: db.config.capacity, buses: db.config.buses,
+        firstRun: db.config.firstRun, lastRun: db.config.lastRun, runEveryMin: db.config.runEveryMin
       });
     }
 
     if (p === '/api/login' && req.method === 'POST') {
+      if (limited('login:' + ip(req), 10, 300000)) {
+        return sendJson(res, 429, { error: 'Too many attempts — try again in a few minutes' });
+      }
       const b = await readBody(req);
       const s = db.students.find(x => x.id.toUpperCase() === String(b.sid || '').trim().toUpperCase());
-      if (!s || s.pin !== String(b.pin || '').trim()) return sendJson(res, 401, { error: 'Wrong student ID or PIN' });
+      if (!s || !checkPin(s, String(b.pin || '').trim())) {
+        return sendJson(res, 401, { error: 'Wrong student ID or PIN' });
+      }
       return sendJson(res, 200, {
-        token: makeToken({ kind: 'student', sid: s.id }),
+        token: makeToken({ kind: 'student', sid: s.id }, TTL_STUDENT),
         student: { id: s.id, name: s.name, photo: s.photo, type: s.type }
       });
     }
 
     if (p === '/api/admin/login' && req.method === 'POST') {
+      if (limited('alogin:' + ip(req), 5, 300000)) {
+        logAudit('admin-login-throttled', 'from ' + ip(req));
+        return sendJson(res, 429, { error: 'Too many attempts — wait 5 minutes' });
+      }
       const b = await readBody(req);
-      if (String(b.password || '') !== ADMIN_PASS) return sendJson(res, 401, { error: 'Wrong password' });
-      return sendJson(res, 200, { token: makeToken({ kind: 'admin' }) });
+      if (String(b.password || '') !== ADMIN_PASS) {
+        logAudit('admin-login-failed', 'from ' + ip(req));
+        return sendJson(res, 401, { error: 'Wrong password' });
+      }
+      logAudit('admin-login', 'from ' + ip(req));
+      return sendJson(res, 200, { token: makeToken({ kind: 'admin' }, TTL_ADMIN) });
     }
 
-    /* ---- validator (kiosk) endpoints — open in the MVP, device-keyed in production ---- */
+    /* ---- validator (kiosk) endpoints ----
+       Set VALIDATOR_KEY in the environment and every scan call must carry it
+       (the validator page sends X-Device-Key from its saved setting). Unset = open demo. */
+    const scanRoutes = ['/api/scan', '/api/scan-card', '/api/scan-manual', '/api/trip/new'];
+    if (DEVICE_KEY && scanRoutes.includes(p) && req.headers['x-device-key'] !== DEVICE_KEY) {
+      logAudit('scan-rejected', 'bad device key from ' + ip(req));
+      return sendJson(res, 401, { error: 'Validator not authorised — set its device key' });
+    }
+
     if (p === '/api/scan' && req.method === 'POST') {
       return sendJson(res, 200, handleScan(await readBody(req)));
     }
@@ -455,6 +599,7 @@ const server = http.createServer(async (req, res) => {
       if (t) t.endedAt = new Date().toISOString();
       const nt = currentTrip(busId, true);
       saveDb();
+      broadcast('trip', { busId, boarded: 0, denied: 0, seatsLeft: db.config.capacity, capacity: db.config.capacity });
       return sendJson(res, 200, { ok: true, tripId: nt.id, seatsLeft: seatsLeft(nt) });
     }
 
@@ -499,11 +644,13 @@ const server = http.createServer(async (req, res) => {
       if (!me.cardUid) return sendJson(res, 404, { error: 'No card on file for your account' });
       me.cardStatus = 'blocked';
       saveDb();
+      logAudit('card-blocked', me.id + ' (self-service: reported lost)');
       return sendJson(res, 200, { ok: true, cardStatus: 'blocked' });
     }
 
     if (p === '/api/buy' && req.method === 'POST') {
       if (!me) return sendJson(res, 401, { error: 'Sign in first' });
+      if (limited('buy:' + me.id, 8, 60000)) return sendJson(res, 429, { error: 'Too many purchases — slow down' });
       const b = await readBody(req);
       const type = ['single', 'day', 'week'].includes(b.type) ? b.type : null;
       if (!type) return sendJson(res, 400, { error: 'bad pass type' });
@@ -527,7 +674,7 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
       return sendJson(res, 200, db.students.map(s => ({
         id: s.id, name: s.name, type: s.type, photo: s.photo,
-        pin: s.pin, cardUid: s.cardUid, cardStatus: s.cardStatus, status: passStatus(s)
+        cardUid: s.cardUid, cardStatus: s.cardStatus, status: passStatus(s)
       })));
     }
 
@@ -537,17 +684,30 @@ const server = http.createServer(async (req, res) => {
       if (!b.name || !String(b.name).trim()) return sendJson(res, 400, { error: 'Name required' });
       const n = 100 + db.students.length + 1;
       const initials = String(b.name).trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const pin = String(Math.floor(1000 + Math.random() * 9000));
       const s = {
-        id: 'NS-' + n, name: String(b.name).trim(),
+        id: 'NS-' + n, name: String(b.name).trim().slice(0, 60),
         type: b.type === 'resident' ? 'resident' : 'external',
         secret: newSecret(),
-        pin: String(Math.floor(1000 + Math.random() * 9000)),
-        cardUid: null,
+        cardUid: null, cardStatus: null,
         photo: (typeof b.photo === 'string' && b.photo.startsWith('data:image')) ? b.photo : avatar(initials, '#3a3a4a'),
         createdAt: new Date().toISOString()
       };
+      setPin(s, pin);                            // hash at rest; shown once below
       db.students.push(s); saveDb();
-      return sendJson(res, 200, { ok: true, id: s.id, pin: s.pin });
+      logAudit('enroll', `${s.id} ${s.name} (${s.type})`);
+      return sendJson(res, 200, { ok: true, id: s.id, pin });
+    }
+
+    if (p === '/api/reset-pin' && req.method === 'POST') {
+      if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
+      const b = await readBody(req);
+      const s = db.students.find(x => x.id === b.sid);
+      if (!s) return sendJson(res, 404, { error: 'unknown student' });
+      const pin = String(Math.floor(1000 + Math.random() * 9000));
+      setPin(s, pin); saveDb();
+      logAudit('reset-pin', s.id);
+      return sendJson(res, 200, { ok: true, pin });   // shown once, never stored in plain
     }
 
     if (p === '/api/assign-card' && req.method === 'POST') {
@@ -558,6 +718,7 @@ const server = http.createServer(async (req, res) => {
       s.cardUid = String(b.uid || '').replace(/[^a-fA-F0-9]/g, '').toLowerCase() || null;
       s.cardStatus = s.cardUid ? 'active' : null;
       saveDb();
+      logAudit('assign-card', `${s.id} ← ${s.cardUid || '(cleared)'}`);
       return sendJson(res, 200, { ok: true, cardUid: s.cardUid });
     }
 
@@ -569,6 +730,7 @@ const server = http.createServer(async (req, res) => {
       if (!['active', 'blocked'].includes(b.status)) return sendJson(res, 400, { error: 'bad status' });
       s.cardStatus = b.status;
       saveDb();
+      logAudit('card-' + b.status, s.id);
       return sendJson(res, 200, { ok: true, cardStatus: s.cardStatus });
     }
 
@@ -580,12 +742,14 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/admin/seed-demo' && req.method === 'POST') {
       if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
       seedDemoData();
+      logAudit('seed-demo', db.trips.length + ' trips');
       return sendJson(res, 200, { ok: true, trips: db.trips.length });
     }
 
     if (p === '/api/admin/reset' && req.method === 'POST') {
       if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
       db.trips = []; db.passes = []; saveDbNow();
+      logAudit('reset-data', 'trips & passes cleared');
       return sendJson(res, 200, { ok: true });
     }
 
@@ -616,7 +780,8 @@ const server = http.createServer(async (req, res) => {
         },
         perTrip,
         recent: taps.slice(0, 30).map(t => ({ ...t, name: name(t.sid) })),
-        exceptions: taps.filter(t => t.result === 'red').slice(0, 20).map(t => ({ ...t, name: name(t.sid) }))
+        exceptions: taps.filter(t => t.result === 'red').slice(0, 20).map(t => ({ ...t, name: name(t.sid) })),
+        audit: db.audit.slice(-10).reverse()
       });
     }
 
@@ -624,7 +789,7 @@ const server = http.createServer(async (req, res) => {
     let file = p === '/' ? '/index.html' : p;
     const full = path.join(PUB, path.normalize(file).replace(/^([.][.][\\/])+/, ''));
     if (full.startsWith(PUB) && fs.existsSync(full) && fs.statSync(full).isFile()) {
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream' });
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream', ...SEC_HEADERS });
       return fs.createReadStream(full).pipe(res);
     }
     res.writeHead(404, { 'Content-Type': 'text/plain' });
