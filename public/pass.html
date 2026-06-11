@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Nova Pass</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101014">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nova Pass">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="style.css">
 <style>
   body {
@@ -77,6 +83,27 @@
   .signout { text-align: center; margin-top: 22px; }
   .signout a { color: var(--muted); font-size: 13px; text-decoration: none; }
   .signout a:hover { color: var(--bad); }
+
+  /* add-to-phone (wallet) */
+  .wallet-btn {
+    width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 9px;
+    background: #000; color: #fff; border: 0; border-radius: 16px; padding: 15px;
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: transform .18s var(--spring), box-shadow .2s;
+  }
+  .wallet-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.25); }
+  .wallet-btn svg { width: 20px; height: 20px; }
+  .installed { text-align:center; margin-top:14px; font-size:13px; color: var(--good-deep); font-weight:600; }
+
+  /* iOS instruction sheet */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); opacity:0; pointer-events:none; transition:.3s; z-index: 200; }
+  .sheet-bg.show { opacity:1; pointer-events:auto; }
+  .sheet { position: fixed; left:0; right:0; bottom:0; background:#fff; border-radius: 26px 26px 0 0; padding: 26px 24px 34px; max-width: 470px; margin: 0 auto; transform: translateY(110%); transition: transform .4s var(--ease); z-index: 201; }
+  .sheet.show { transform: none; }
+  .sheet h3 { font-size: 20px; letter-spacing: -.02em; margin-bottom: 6px; }
+  .sheet ol { margin: 16px 0 0 0; padding-left: 0; list-style: none; counter-reset: s; }
+  .sheet li { counter-increment: s; position: relative; padding: 10px 0 10px 44px; font-size: 15px; }
+  .sheet li::before { content: counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:50%; background: var(--accent); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
 </style>
 </head>
 <body>
@@ -114,6 +141,12 @@
       <div class="statusrow"><span class="chip" id="status"></span></div>
     </div>
 
+    <button class="wallet-btn" id="installBtn" onclick="addToPhone()" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#fff" stroke-width="2"/><path d="M3 10h18" stroke="#fff" stroke-width="2"/><circle cx="17" cy="14.5" r="1.4" fill="#fff"/></svg>
+      Add pass to phone
+    </button>
+    <div class="installed" id="installed" style="display:none">✓ Installed — open “Nova Pass” from your home screen</div>
+
     <div class="card panel">
       <h2>Next shuttles · Nova → Campus</h2>
       <div class="runs" id="runs"></div>
@@ -146,6 +179,19 @@
     <div class="signout"><a href="#" onclick="signout();return false">Sign out</a></div>
   </section>
 </div>
+
+<div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <h3>Add Nova Pass to your iPhone</h3>
+  <p class="muted">It lands on your home screen like an app — open it and your live pass is one tap away.</p>
+  <ol>
+    <li>Tap the <b>Share</b> button (the square with an arrow) in Safari's bar.</li>
+    <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+    <li>Tap <b>Add</b> — the Nova Pass icon appears on your home screen.</li>
+  </ol>
+  <button class="btn block" style="margin-top:18px" onclick="closeSheet()">Got it</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="vendor/qrcode.min.js"></script>
@@ -184,6 +230,7 @@ function enter() {
   $('name').textContent = ME.name;
   $('subid').textContent = ME.id + (ME.type === 'resident' ? ' · Nova Towers resident' : ' · Pass holder');
   $('shop').style.display = ME.type === 'resident' ? 'none' : '';
+  showInstall();
   refresh();
 }
 
@@ -245,6 +292,40 @@ setInterval(() => {
 
 /* enter key submits */
 ['sid', 'pin'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
+
+/* ---- Add to phone (PWA install) ---- */
+let deferredPrompt = null;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  if ($('app').style.display !== 'none') showInstall();
+});
+window.addEventListener('appinstalled', () => { $('installBtn').style.display = 'none'; $('installed').style.display = ''; });
+
+function showInstall() {
+  if (isStandalone) { $('installed').style.display = ''; return; }
+  // Always offer it: Android/desktop Chrome fire a native prompt, iOS gets the
+  // guided sheet, anything else gets a short how-to toast.
+  $('installBtn').style.display = '';
+}
+async function addToPhone() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') $('installBtn').style.display = 'none';
+    return;
+  }
+  if (isIOS) openSheet();
+  else toast('Use your browser menu → “Install app” / “Add to Home screen”.');
+}
+function openSheet() { $('sheetBg').classList.add('show'); $('sheet').classList.add('show'); }
+function closeSheet() { $('sheetBg').classList.remove('show'); $('sheet').classList.remove('show'); }
 
 if (TOKEN && ME) enter();
 </script>

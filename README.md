@@ -5,6 +5,18 @@ students show a rotating QR pass (or tap an NFC card sticker), a validator at th
 bus door flashes green or red with the rider's photo, and the logistics office gets
 a live console of every boarding — with zero effort from drivers.
 
+Beyond the gate, it's a **logistics intelligence platform**: every tap feeds a
+demand-by-hour heatmap, per-trip utilisation, channel mix, and a plain-English
+**fleet recommendation** ("peak at 17:00 needs a second bus; the 14:00 run is
+nearly empty — stretch the interval") in the console's *Logistics intelligence*
+tab. Press **Load demo data** in the console header to see a believable full day
+instantly.
+
+Students can also **Add the pass to their phone** (PWA): it installs to the home
+screen like an app on both iPhone and Android — Android/Chrome gets the native
+install prompt, iOS gets a guided 3-step sheet. The pass shell opens offline; the
+QR code itself is always fetched live so a stale code can never board.
+
 Built for SP Jain · Nova Towers, but **brand, fleet, capacity, and prices are all
 configuration** (`config` in `data/db.json`) — any campus, shuttle service, or gated
 community with the same problem can run it.
@@ -36,7 +48,22 @@ Then open **http://localhost:3000**.
 **Camera note:** browsers only allow the camera on `localhost` or HTTPS — so run the
 validator on the laptop, or deploy (below) and the camera works on every device.
 
-The database is one file, `data/db.json`. Delete it to reset the demo.
+The database is one file, `data/db.json`. Delete it to reset the demo — or use the
+**Reset** button in the console header (clears trips and passes, keeps students).
+
+## Run it with Docker (one command, anywhere)
+
+If Docker Desktop is installed, the entire platform runs identically on any
+machine — laptop, server, or the college's IT box:
+
+```
+cd nova-shuttle
+docker compose up
+```
+
+Then open **http://localhost:3000**. The database persists in `./data` across
+restarts; change `ADMIN_PASS` in `docker-compose.yml` for real use. (Or without
+compose: `docker build -t nova-shuttle . && docker run -p 3000:3000 nova-shuttle`.)
 
 ## Put it on GitHub and deploy
 
@@ -72,6 +99,10 @@ Render's environment settings.
    boardings per trip charted, revenue counted. Hit **End trip** on the validator
    to show the per-trip reset.
 6. **Dead phone?** Manual ID check-in on the validator — logged and marked `manual`.
+7. **The logistics finale.** Console → **Load demo data** → *Logistics
+   intelligence* tab: the demand heatmap shows the 08:00 and 17:00 rushes, and the
+   fleet recommendation says exactly where to add a bus and where to cut one.
+   That's the slide that turns a turnstile into a logistics platform.
 
 ## How the security works
 

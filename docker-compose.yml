@@ -1,0 +1,13 @@
+# One command to run the whole platform:  docker compose up
+# Then open http://localhost:3000
+services:
+  nova:
+    build: .
+    container_name: nova-shuttle
+    ports:
+      - "3000:3000"
+    environment:
+      - ADMIN_PASS=nova-admin   # change this for a real deployment
+    volumes:
+      - ./data:/app/data        # keep the database across restarts
+    restart: unless-stopped

@@ -231,12 +231,128 @@ function nextRuns() {
   return runs;
 }
 
+/* ---------------- logistics analytics ---------------- */
+
+function allTaps() {
+  const out = [];
+  for (const t of db.trips) for (const tap of t.taps) out.push({ ...tap, busId: t.busId, tripId: t.id, startedAt: t.startedAt });
+  return out;
+}
+
+// The intelligence layer: turn boarding taps into fleet decisions.
+function buildAnalytics() {
+  const cap = db.config.capacity;
+  const taps = allTaps();
+  const greens = taps.filter(t => t.result === 'green');
+
+  // demand by hour of day (0–23)
+  const byHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, boardings: 0, denied: 0 }));
+  for (const t of taps) {
+    const h = new Date(t.time).getHours();
+    if (t.result === 'green') byHour[h].boardings++; else byHour[h].denied++;
+  }
+  const service = byHour.filter(x => x.boardings > 0 || x.denied > 0);
+  const peak = byHour.reduce((m, x) => x.boardings > m.boardings ? x : m, byHour[0]);
+  const quiet = service.length
+    ? service.reduce((m, x) => x.boardings < m.boardings ? x : m, service[0])
+    : { hour: null, boardings: 0 };
+
+  // per-trip utilisation
+  const tripStats = db.trips.map(t => {
+    const g = t.taps.filter(x => x.result === 'green').length;
+    return { id: t.id, busId: t.busId, startedAt: t.startedAt,
+      boarded: g, denied: t.taps.filter(x => x.result === 'red').length,
+      util: Math.round(100 * g / cap) };
+  });
+  const ran = tripStats.filter(t => t.boarded + t.denied > 0);
+  const avgUtil = ran.length ? Math.round(ran.reduce((a, t) => a + t.util, 0) / ran.length) : 0;
+
+  // channel mix + denial reasons
+  const channel = { qr: 0, nfc: 0, manual: 0 };
+  for (const g of greens) channel[g.via] = (channel[g.via] || 0) + 1;
+  const reasons = {};
+  for (const r of taps.filter(t => t.result === 'red')) reasons[r.reason] = (reasons[r.reason] || 0) + 1;
+
+  // fleet recommendation: how many buses the peak hour actually needs,
+  // and where we are over-serving a quiet window.
+  const every = db.config.runEveryMin;
+  const runsPerHour = Math.max(1, Math.round(60 / every));
+  const seatsPerHourNow = runsPerHour * cap;
+  const busesAtPeak = Math.max(1, Math.ceil(peak.boardings / cap));
+  const recs = [];
+  if (peak.boardings > seatsPerHourNow * 0.85)
+    recs.push(`Peak demand at ${hh(peak.hour)} hits ${peak.boardings} riders/hr — above ${Math.round(seatsPerHourNow * 0.85)} comfortable seats. Add a run or a second bus in that window.`);
+  else if (peak.boardings)
+    recs.push(`Peak of ${peak.boardings} riders/hr at ${hh(peak.hour)} fits inside current capacity (${seatsPerHourNow} seats/hr). Fleet is right-sized at the top.`);
+  if (quiet.hour !== null && quiet.boardings <= Math.max(1, cap * 0.25))
+    recs.push(`${hh(quiet.hour)} runs nearly empty (${quiet.boardings} riders). Stretch the interval there to save a driver-shift and fuel.`);
+  if (avgUtil && avgUtil < 45)
+    recs.push(`Average bus leaves ${100 - avgUtil}% empty — consider a smaller vehicle off-peak or fewer runs.`);
+  if (!recs.length) recs.push('Not enough boarding history yet — run a few trips (or load demo data) to see fleet recommendations.');
+
+  return {
+    capacity: cap, totalBoardings: greens.length, totalDenied: taps.length - greens.length,
+    byHour, peakHour: peak.hour, peakBoardings: peak.boardings,
+    avgUtil, busesAtPeak, seatsPerHourNow,
+    channel, reasons,
+    busiest: tripStats.slice().sort((a, b) => b.boarded - a.boarded).slice(0, 6),
+    recommendations: recs
+  };
+}
+function hh(h) { return h === null ? '—' : String(h).padStart(2, '0') + ':00'; }
+
+// Synthetic-but-believable history so the dashboard has a story to tell on day one.
+function seedDemoData() {
+  const cap = db.config.capacity;
+  const residents = db.students.filter(s => s.type === 'resident');
+  const externals = db.students.filter(s => s.type === 'external');
+  // give externals a pass so some of them board
+  for (const e of externals.slice(0, 1)) {
+    const ex = new Date(); ex.setHours(23, 59, 59, 999);
+    db.passes.push({ id: 'P' + Math.random().toString(36).slice(2), sid: e.id, type: 'day',
+      purchasedAt: new Date().toISOString(), expiresAt: ex.toISOString(), ridesLeft: null, priceAed: db.config.prices.day });
+  }
+  const demand = { 7: .5, 8: 1, 9: .85, 10: .4, 11: .3, 12: .45, 13: .4, 14: .35,
+    15: .4, 16: .6, 17: .95, 18: .8, 19: .45, 20: .3, 21: .25 };
+  const buses = db.config.buses;
+  const now = new Date();
+  for (const [hStr, load] of Object.entries(demand)) {
+    const h = Number(hStr);
+    const trips = h === 8 || h === 17 ? 2 : 1;     // double up at rush hour
+    for (let r = 0; r < trips; r++) {
+      const start = new Date(now); start.setHours(h, r * 25 + 5, 0, 0);
+      const busId = buses[(h + r) % buses.length];
+      const trip = { id: 'T' + start.getTime() + r, busId, startedAt: start.toISOString(),
+        endedAt: new Date(start.getTime() + 18 * 60000).toISOString(), taps: [] };
+      const riders = Math.max(2, Math.round(cap * load * (0.8 + Math.random() * 0.3)));
+      const pool = residents.slice().sort(() => Math.random() - 0.5);
+      let seated = 0;
+      for (let i = 0; i < riders && seated < cap; i++) {
+        const s = pool[i % pool.length];
+        const t = new Date(start.getTime() + i * 9000);
+        trip.taps.push({ time: t.toISOString(), sid: s.id, result: 'green',
+          reason: 'Nova resident', via: Math.random() < 0.2 ? 'nfc' : 'qr' });
+        seated++;
+      }
+      // a couple of denials at busy hours
+      if (load > 0.6 && externals.length) {
+        const e = externals[Math.floor(Math.random() * externals.length)];
+        trip.taps.push({ time: new Date(start.getTime() + 60000).toISOString(), sid: e.id,
+          result: 'red', reason: 'No valid pass', via: 'qr' });
+      }
+      db.trips.push(trip);
+    }
+  }
+  saveDbNow();
+}
+
 /* ---------------- http plumbing ---------------- */
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
-  '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon'
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2'
 };
 
 function sendJson(res, code, obj) {
@@ -425,6 +541,23 @@ const server = http.createServer(async (req, res) => {
       s.cardUid = String(b.uid || '').replace(/[^a-fA-F0-9]/g, '').toLowerCase() || null;
       saveDb();
       return sendJson(res, 200, { ok: true, cardUid: s.cardUid });
+    }
+
+    if (p === '/api/admin/analytics') {
+      if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
+      return sendJson(res, 200, buildAnalytics());
+    }
+
+    if (p === '/api/admin/seed-demo' && req.method === 'POST') {
+      if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
+      seedDemoData();
+      return sendJson(res, 200, { ok: true, trips: db.trips.length });
+    }
+
+    if (p === '/api/admin/reset' && req.method === 'POST') {
+      if (!isAdmin) return sendJson(res, 401, { error: 'Admin sign-in required' });
+      db.trips = []; db.passes = []; saveDbNow();
+      return sendJson(res, 200, { ok: true });
     }
 
     if (p === '/api/admin/summary') {

@@ -1,0 +1,19 @@
+{
+  "name": "Nova Shuttle Pass",
+  "short_name": "Nova Pass",
+  "description": "Your live shuttle boarding pass.",
+  "start_url": "/pass.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101014",
+  "theme_color": "#101014",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

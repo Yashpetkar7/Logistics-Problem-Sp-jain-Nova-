@@ -4,45 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nova Shuttle — One tap. Green light. Go.</title>
+<meta name="theme-color" content="#f5f5f7">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
 <link rel="stylesheet" href="style.css">
 <style>
-  .hero { text-align: center; padding: 110px 0 70px; position: relative; }
-  .hero .lede { max-width: 620px; margin: 22px auto 0; }
-  .hero .cta { margin-top: 36px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .glow {
-    position: absolute; inset: auto; width: 560px; height: 560px; border-radius: 50%;
-    filter: blur(110px); opacity: .16; pointer-events: none; z-index: -1;
-  }
-  .glow.a { background: #0a84ff; top: -160px; left: -180px; }
-  .glow.b { background: #8e5cf7; top: -60px; right: -200px; }
+  .hero { text-align: center; padding: 96px 0 34px; }
+  .hero .eyebrow { display: inline-block; margin-bottom: 18px; }
+  .hero .lede { max-width: 640px; margin: 22px auto 0; }
+  .hero .cta { margin-top: 34px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
-  .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 26px; }
-  .role { text-decoration: none; color: inherit; }
-  .role .card { height: 100%; padding: 30px 26px; transition: transform .25s cubic-bezier(.2,.7,.3,1.2), box-shadow .25s; }
-  .role .card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lift); }
-  .role .icon {
-    width: 54px; height: 54px; border-radius: 16px; font-size: 26px;
-    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  /* product preview — three surfaces floating together */
+  .stage { margin: 56px auto 0; max-width: 980px; position: relative; height: 470px; }
+  .stage .pane {
+    position: absolute; border-radius: 26px; overflow: hidden;
+    box-shadow: var(--shadow-lift); border: 1px solid var(--line);
+    transition: transform .5s var(--ease);
   }
+  .stage .phone {
+    width: 244px; height: 440px; left: 50%; top: 14px; transform: translateX(-50%);
+    z-index: 3; background: #000; padding: 11px; border-radius: 40px;
+  }
+  .stage .phone .screen { width: 100%; height: 100%; border-radius: 30px; overflow: hidden;
+    background: linear-gradient(160deg, #101014, #1c1c26); color: #fff; padding: 20px 18px; }
+  .stage .kiosk { width: 360px; height: 250px; left: 2%; top: 150px; z-index: 1; background: #000; color: #fff; transform: rotate(-4deg); }
+  .stage .console { width: 380px; height: 270px; right: 2%; top: 130px; z-index: 2; background: #fff; transform: rotate(4deg); }
+  .stage:hover .kiosk { transform: rotate(-4deg) translateY(-8px); }
+  .stage:hover .console { transform: rotate(4deg) translateY(-8px); }
+  .stage:hover .phone { transform: translateX(-50%) translateY(-8px); }
+  @media (max-width: 760px) { .stage { display: none; } }
+
+  .mini-face { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#6C4AB6,#0E7C66); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; }
+  .mini-qr { width: 150px; height: 150px; margin: 16px auto; border-radius: 16px; background:
+    conic-gradient(#000 0 25%, #fff 0 50%, #000 0 75%, #fff 0) 0 0/22px 22px,
+    repeating-linear-gradient(90deg,#000 0 11px,#fff 0 22px); image-rendering: pixelated; }
+  .mini-meter { height: 5px; border-radius: 3px; background: rgba(255,255,255,.16); margin: 6px 4px; overflow: hidden; }
+  .mini-meter > div { height: 100%; width: 64%; background: linear-gradient(90deg,#0a84ff,#8e5cf7); }
+  .kiosk .ok { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: radial-gradient(circle at 50% 35%, rgba(52,199,89,.25), transparent 60%); }
+  .kiosk .ok .ring { width: 78px; height: 78px; border-radius: 50%; background: #34c759; display: flex; align-items: center; justify-content: center; font-size: 42px; color: #fff; box-shadow: 0 0 40px rgba(52,199,89,.6); }
+  .console .topbar { height: 38px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; padding: 0 14px; }
+  .console .topbar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); }
+  .console .body { padding: 16px; }
+  .c-tiles { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+  .c-tile { background: var(--bg); border-radius: 12px; padding: 10px; }
+  .c-tile b { font-size: 20px; letter-spacing: -.02em; } .c-tile span { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .c-bars { display: flex; gap: 5px; align-items: flex-end; height: 84px; }
+  .c-bars i { flex: 1; border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg,#0a84ff,#8e5cf7); }
+
+  /* stats band */
+  .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 8px; margin-top: 70px; text-align: center; }
+  .band .s b { font-size: clamp(34px,5vw,48px); font-weight: 700; letter-spacing: -.03em; background: linear-gradient(92deg,#0a84ff,#8e5cf7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .band .s span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+  .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 18px; margin-top: 26px; }
+  .role { text-decoration: none; color: inherit; }
+  .role .card { height: 100%; padding: 28px 26px; transition: transform .25s var(--ease), box-shadow .25s; }
+  .role .card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lift); }
+  .role .icon { width: 54px; height: 54px; border-radius: 16px; font-size: 26px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
   .role h3 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
   .role p { color: var(--muted); font-size: 15px; }
   .role .go { display: inline-block; margin-top: 16px; color: var(--accent); font-weight: 600; font-size: 15px; }
 
-  .strip { margin-top: 90px; text-align: center; }
+  .strip { margin-top: 92px; text-align: center; }
   .feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 34px; text-align: left; }
-  .feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: var(--shadow-soft); transition: transform .25s var(--ease); }
+  .feat:hover { transform: translateY(-4px); }
   .feat .e { font-size: 24px; }
   .feat b { display: block; margin: 10px 0 4px; font-size: 16px; letter-spacing: -.01em; }
   .feat span { color: var(--muted); font-size: 14px; }
 
-  .phone-box { margin-top: 80px; }
+  /* logistics callout */
+  .logi { margin-top: 92px; }
+  .logi .card { padding: 40px; background: linear-gradient(135deg, #0b1020, #1a1340); color: #fff; border: 0; position: relative; overflow: hidden; }
+  .logi .card::after { content:''; position:absolute; width:380px; height:380px; border-radius:50%; background: radial-gradient(circle, rgba(142,92,247,.4), transparent 70%); top:-120px; right:-80px; }
+  .logi h2 { font-size: clamp(24px,3.6vw,34px); letter-spacing: -.03em; position: relative; }
+  .logi p { color: rgba(255,255,255,.7); max-width: 560px; margin-top: 12px; position: relative; }
+  .logi .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; position: relative; }
+  .logi .pill { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); padding: 9px 15px; border-radius: 980px; font-size: 13px; font-weight: 600; }
+
+  .phone-box { margin-top: 84px; }
   .phone-box .card { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; padding: 28px; }
   code.url { background: rgba(0,113,227,.08); color: var(--accent-deep); padding: 6px 14px; border-radius: 10px; font-size: 15px; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
   footer { margin-top: 90px; text-align: center; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
+<div class="mesh"><i></i><i></i><i></i></div>
 <nav class="nav"><div class="nav-inner">
   <a class="brand" href="/"><span class="logo">N</span><b id="brand">Nova Shuttle</b></a>
   <span class="spacer"></span>
@@ -53,20 +99,59 @@
 
 <div class="wrap">
   <section class="hero">
-    <div class="glow a"></div><div class="glow b"></div>
+    <span class="eyebrow">Shuttle access · reimagined</span>
     <h1 class="display">One tap.<br><span class="grad">Green light. Go.</span></h1>
-    <p class="lede">The shuttle boarding platform built for <span id="org">SP Jain · Nova Towers</span>. Two-second boarding, zero driver effort, every ride accounted for.</p>
+    <p class="lede">The boarding platform for <span id="org">SP Jain · Nova Towers</span>. Riders prove themselves in two seconds, drivers never check a card, and every seat turns into data you can act on.</p>
     <div class="cta">
       <a class="btn" href="pass.html">Open my pass</a>
-      <a class="btn ghost" href="admin.html">Admin console</a>
+      <a class="btn ghost" href="admin.html">See the console</a>
     </div>
+
+    <!-- three surfaces, one platform -->
+    <div class="stage">
+      <div class="pane kiosk"><div class="ok">
+        <div class="ring">✓</div>
+        <div style="font-weight:700;letter-spacing:.04em">WELCOME ABOARD</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6)">Sara Khan · Bus 2 · seat 14 of 26</div>
+      </div></div>
+
+      <div class="pane phone"><div class="screen">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="mini-face">SK</div>
+          <div><b style="font-size:14px">Sara Khan</b><div style="font-size:11px;color:rgba(255,255,255,.5)">NS-102 · Resident</div></div>
+        </div>
+        <div class="mini-qr"></div>
+        <div class="mini-meter"><div></div></div>
+        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.5)">New code in 19s</div>
+        <div style="margin-top:14px;text-align:center;font-size:11px;background:rgba(255,255,255,.1);border-radius:980px;padding:7px;font-weight:600">Nova resident · included in fees</div>
+      </div></div>
+
+      <div class="pane console">
+        <div class="topbar"><i></i><i></i><i></i><span style="font-size:11px;color:var(--muted);margin-left:6px">Logistics console</span></div>
+        <div class="body">
+          <div class="c-tiles">
+            <div class="c-tile"><b>312</b><span>Boardings</span></div>
+            <div class="c-tile"><b>74%</b><span>Avg fill</span></div>
+            <div class="c-tile"><b>AED 96</b><span>Pass rev</span></div>
+          </div>
+          <div class="c-bars"><i style="height:40%"></i><i style="height:90%"></i><i style="height:70%"></i><i style="height:35%"></i><i style="height:55%"></i><i style="height:100%"></i><i style="height:62%"></i><i style="height:30%"></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band reveal">
+    <div class="s"><b>2s</b><span>to board, per rider</span></div>
+    <div class="s"><b>0</b><span>cards checked by hand</span></div>
+    <div class="s"><b>5</b><span>layered guardrails</span></div>
+    <div class="s"><b>100%</b><span>of rides logged</span></div>
   </section>
 
   <section class="roles">
     <a class="role reveal" href="pass.html"><div class="card">
       <div class="icon" style="background:rgba(10,132,255,.12)">📱</div>
       <h3>Student pass</h3>
-      <p>A live QR pass that refreshes every 30 seconds, next-shuttle times, seats left, and instant ride passes.</p>
+      <p>A live QR pass that refreshes every 30 seconds, add-to-phone wallet card, next-shuttle times, seats left, and instant ride passes.</p>
       <span class="go">Sign in →</span>
     </div></a>
     <a class="role reveal" href="validator.html"><div class="card">
@@ -77,8 +162,8 @@
     </div></a>
     <a class="role reveal" href="admin.html"><div class="card">
       <div class="icon" style="background:rgba(142,92,247,.12)">📊</div>
-      <h3>Admin console</h3>
-      <p>Enrollment, live boarding log, every denial explained, ridership per trip, and pass revenue — at a glance.</p>
+      <h3>Logistics console</h3>
+      <p>Enrollment, live boarding log, every denial explained, a demand heatmap and a fleet-size recommendation that pays for itself.</p>
       <span class="go">Sign in →</span>
     </div></a>
   </section>
@@ -93,6 +178,20 @@
       <div class="feat reveal"><span class="e">📡</span><b>Works offline</b><span>Signature maths needs no internet — the bus verifies riders anywhere on the route.</span></div>
       <div class="feat reveal"><span class="e">🧾</span><b>Everything logged</b><span>Every green and red lands in the console with a reason. Enforcement happens in the office, not at the door.</span></div>
       <div class="feat reveal"><span class="e">💳</span><b>Spare seats earn</b><span>Non-residents buy single, day, or weekly passes in two taps — freeloaders become customers.</span></div>
+    </div>
+  </section>
+
+  <section class="logi reveal">
+    <div class="card">
+      <span class="eyebrow" style="color:#8ab4ff">Not just a turnstile</span>
+      <h2 style="margin-top:10px">Every tap is a logistics decision.</h2>
+      <p>Boardings tell you exactly when demand peaks and where seats run empty. Nova turns that into a fleet recommendation — add a bus at the 8:30 rush, stretch the quiet 2pm run — so the shuttle costs less and waits shorter.</p>
+      <div class="pills">
+        <span class="pill">📈 Demand heatmap</span>
+        <span class="pill">🚌 Fleet right-sizing</span>
+        <span class="pill">⏱️ Peak-hour analysis</span>
+        <span class="pill">💰 Cost-per-rider</span>
+      </div>
     </div>
   </section>
 
@@ -116,7 +215,7 @@ fetch('/api/info').then(r => r.json()).then(i => {
   document.getElementById('ips').innerHTML = i.ips.length
     ? i.ips.map(ip => `<code class="url">http://${ip}:${i.port}/pass.html</code>`).join('<br>')
     : '<code class="url">single-laptop mode</code>';
-});
+}).catch(() => {});
 const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
 document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 </script>

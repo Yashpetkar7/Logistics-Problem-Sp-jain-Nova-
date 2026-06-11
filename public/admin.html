@@ -63,10 +63,20 @@
 <div class="wrap" id="app" style="display:none">
   <div class="head">
     <span class="logo">N</span>
-    <div><h1>Admin console</h1><div class="sub">Full control, zero chasing</div></div>
-    <button class="btn small ghost out" onclick="signout()">Sign out</button>
+    <div><h1>Logistics console</h1><div class="sub">Full control, zero chasing</div></div>
+    <button class="btn small ghost out" onclick="seedDemo()" title="Generate a believable day of boardings">Load demo data</button>
+    <button class="btn small ghost" onclick="resetData()" title="Clear all trips and passes">Reset</button>
+    <button class="btn small ghost" onclick="signout()">Sign out</button>
   </div>
 
+  <div class="tabs" style="margin-bottom:20px">
+    <button class="active" id="tab-btn-overview" onclick="showTab('overview')">Overview</button>
+    <button id="tab-btn-logistics" onclick="showTab('logistics')">Logistics intelligence</button>
+    <button id="tab-btn-people" onclick="showTab('people')">People &amp; log</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview">
   <div class="stats" id="stats"></div>
 
   <div class="cols">
@@ -80,7 +90,37 @@
       <div class="scroll"><table id="exc"><thead><tr><th>Time</th><th>Who</th><th>Bus</th><th>Reason</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
+  </div><!-- /tab-overview -->
 
+  <!-- LOGISTICS INTELLIGENCE -->
+  <div id="tab-logistics" style="display:none">
+    <div class="tiles" id="lstats" style="margin-bottom:16px"></div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2>Demand by hour <span class="muted" style="font-weight:400">— when the shuttle is actually needed</span></h2>
+      <div class="heat" id="heat" style="height:200px; margin-top:18px"></div>
+      <p class="muted" id="heat-empty" style="display:none; margin-top:10px">No boarding history yet. Hit <b>Load demo data</b> above to see a full day.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px; background: linear-gradient(135deg,#0b1020,#1a1340); color:#fff; border:0">
+      <h2 style="color:#fff">🚌 Fleet recommendation</h2>
+      <div id="recs" style="margin-top:6px"></div>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h2>How riders boarded</h2>
+        <div id="channel"></div>
+      </div>
+      <div class="card">
+        <h2>Busiest trips</h2>
+        <div class="scroll"><table id="busiest"><thead><tr><th>Trip</th><th>Boarded</th><th>Fill</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div><!-- /tab-logistics -->
+
+  <!-- PEOPLE & LOG -->
+  <div id="tab-people" style="display:none">
   <div class="cols">
     <div class="card enroll">
       <h2>Enroll a student</h2>
@@ -103,7 +143,10 @@
     <h2>Recent taps</h2>
     <div class="scroll"><table id="taps"><thead><tr><th></th><th>Time</th><th>Who</th><th>Bus</th><th>Via</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
   </div>
+  </div><!-- /tab-people -->
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 let TOKEN = localStorage.getItem('nova_admin') || '';
@@ -222,6 +265,84 @@ function shrink(file) {   // resize the photo to 160px so the database stays tin
     };
     img.src = URL.createObjectURL(file);
   });
+}
+
+/* ---- tabs ---- */
+let currentTab = 'overview';
+function showTab(name) {
+  currentTab = name;
+  ['overview', 'logistics', 'people'].forEach(t => {
+    $('tab-' + t).style.display = t === name ? '' : 'none';
+    $('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'logistics') loadAnalytics();
+}
+
+/* ---- logistics intelligence ---- */
+async function loadAnalytics() {
+  const r = await fetch('/api/admin/analytics', { headers: auth() });
+  if (r.status === 401) { signout(); return; }
+  const a = await r.json();
+
+  $('lstats').innerHTML = [
+    [a.peakBoardings ? hh(a.peakHour) : '—', 'Peak hour'],
+    [a.peakBoardings || 0, 'Riders at peak / hr'],
+    [a.busesAtPeak, 'Buses needed at peak'],
+    [a.avgUtil + '%', 'Average bus fill'],
+    [a.totalBoardings, 'Boardings (all time)'],
+    ['AED ' + Math.round((a.channel.qr + a.channel.nfc + a.channel.manual) * 0), 'Cost saved · drivers']
+  ].slice(0, 4).map(([v, k]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  // heatmap — service hours only
+  const hours = a.byHour.filter(h => h.hour >= 6 && h.hour <= 23);
+  const max = Math.max(1, ...hours.map(h => h.boardings));
+  const any = hours.some(h => h.boardings > 0);
+  $('heat-empty').style.display = any ? 'none' : '';
+  $('heat').style.display = any ? 'flex' : 'none';
+  $('heat').innerHTML = hours.map(h => {
+    const pct = Math.round(100 * h.boardings / max);
+    const isPeak = h.hour === a.peakHour && h.boardings > 0;
+    return `<div class="col" title="${h.boardings} riders at ${hh(h.hour)}">
+      <div class="bar ${isPeak ? 'peak' : ''}" style="height:${Math.max(4, pct * 1.5)}px"></div>
+      <div class="hr">${String(h.hour).padStart(2, '0')}</div></div>`;
+  }).join('');
+
+  $('recs').innerHTML = a.recommendations.map(t =>
+    `<p style="margin:10px 0;color:rgba(255,255,255,.92);font-size:15px;line-height:1.5">• ${t}</p>`).join('');
+
+  const totC = Math.max(1, a.channel.qr + a.channel.nfc + a.channel.manual);
+  $('channel').innerHTML = [
+    ['Rotating QR', a.channel.qr, '#0a84ff'],
+    ['NFC card', a.channel.nfc, '#8e5cf7'],
+    ['Manual check-in', a.channel.manual, '#ff9f0a']
+  ].map(([l, n, c]) => {
+    const pct = Math.round(100 * n / totC);
+    return `<div style="margin:12px 0">
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px"><span>${l}</span><b>${n} · ${pct}%</b></div>
+      <div style="height:8px;border-radius:5px;background:rgba(0,0,0,.06);overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:5px"></div></div></div>`;
+  }).join('');
+
+  $('busiest').querySelector('tbody').innerHTML = a.busiest.filter(t => t.boarded > 0).map(t =>
+    `<tr><td>${t.busId} · ${fmt(t.startedAt)}</td><td>${t.boarded}</td>
+     <td><span class="chip ${t.util >= 75 ? 'bad' : t.util >= 40 ? 'warn' : 'good'}">${t.util}%</span></td></tr>`
+  ).join('') || '<tr><td colspan="3" class="muted">No trips yet</td></tr>';
+}
+function hh(h) { return h === null ? '—' : String(h).padStart(2, '0') + ':00'; }
+
+async function seedDemo() {
+  await fetch('/api/admin/seed-demo', { method: 'POST', headers: auth() });
+  toast('Loaded a full day of demo boardings');
+  refresh(); if (currentTab === 'logistics') loadAnalytics();
+}
+async function resetData() {
+  if (!confirm('Clear all trips and passes? Students stay enrolled.')) return;
+  await fetch('/api/admin/reset', { method: 'POST', headers: auth() });
+  toast('Boarding data cleared');
+  refresh(); if (currentTab === 'logistics') loadAnalytics();
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
 }
 
 $('pw').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
