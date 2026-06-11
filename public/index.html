@@ -80,6 +80,51 @@
   .logi .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; position: relative; }
   .logi .pill { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); padding: 9px 15px; border-radius: 980px; font-size: 13px; font-weight: 600; }
 
+  /* the convenience story — three steps, two seconds */
+  .steps { margin-top: 64px; text-align: center; }
+  .steps .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 34px; text-align: left; }
+  .step { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; padding: 26px; backdrop-filter: blur(10px); position: relative; }
+  .step .n { font-size: 44px; font-weight: 800; letter-spacing: -.04em; line-height: 1;
+    background: linear-gradient(135deg, #5ad7ff, #8e9bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .step b { display: block; font-size: 18px; color: #fff; margin: 14px 0 6px; letter-spacing: -.01em; }
+  .step span { color: #a9aabb; font-size: 14.5px; }
+  .steps .tagline { margin-top: 26px; color: #8a8a9e; font-size: 15px; }
+  .steps .tagline b { color: #fff; }
+
+  /* Nova assistant — guest mode, dark glass */
+  .chatfab { position: fixed; right: 20px; bottom: 20px; z-index: 150;
+    width: 58px; height: 58px; border-radius: 50%; border: 0; cursor: pointer;
+    background: linear-gradient(135deg, #0a84ff, #8e5cf7); color: #fff; font-size: 26px;
+    box-shadow: 0 0 36px rgba(108, 74, 182, .6);
+    display: flex; align-items: center; justify-content: center; transition: transform .2s var(--spring); }
+  .chatfab:hover { transform: scale(1.08); }
+  .chat { position: fixed; right: 16px; bottom: 90px; z-index: 150;
+    width: min(370px, calc(100vw - 32px)); height: min(500px, 68vh);
+    background: rgba(16, 16, 28, .92); border-radius: 24px; border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 30px 80px rgba(0,0,0,.6); backdrop-filter: blur(18px);
+    display: flex; flex-direction: column; overflow: hidden;
+    opacity: 0; pointer-events: none; transform: translateY(16px) scale(.97);
+    transition: opacity .25s, transform .3s var(--ease); }
+  .chat.open { opacity: 1; pointer-events: auto; transform: none; }
+  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .chat .chead b { font-size: 15px; color: #fff; }
+  .chat .chead span { font-size: 12px; color: #34c759; font-weight: 600; }
+  .chat .msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 84%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.45; white-space: pre-line; }
+  .msg.bot { background: rgba(255,255,255,.09); color: #ecedf3; border-bottom-left-radius: 6px; align-self: flex-start; }
+  .msg.me { background: var(--accent); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
+  .msg.typing { color: #8a8a9e; letter-spacing: 2px; }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
+  .qchip { background: rgba(10,132,255,.16); color: #8fc1ff; border: 1px solid rgba(10,132,255,.4);
+    border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .qchip:hover { background: rgba(10,132,255,.3); }
+  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .chat .cinput input { flex: 1; border-radius: 980px; padding: 11px 16px; font-size: 14.5px;
+    background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.14); color: #fff; outline: none; }
+  .chat .cinput input::placeholder { color: #7a7a8e; }
+  .chat .cinput input:focus { border-color: var(--accent); }
+  .chat .cinput button { border: 0; background: var(--accent); color: #fff; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; }
+
   .phone-box { margin-top: 100px; }
   .phone-box .card { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; padding: 30px;
     background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 24px; backdrop-filter: blur(10px); }
@@ -112,6 +157,17 @@
       <a class="btn glass" href="admin.html">Logistics console</a>
     </div>
     <div class="scrollcue">▼ scroll</div>
+  </section>
+
+  <section class="steps reveal">
+    <h2 class="section">Three steps. Two seconds.</h2>
+    <p class="lede" style="margin-top:10px">No tickets. No cash. No queues. Built for convenience first.</p>
+    <div class="grid3">
+      <div class="step"><div class="n">01</div><b>Open your pass</b><span>It lives on your home screen like an app — one tap and your live code is up. Phone dead? Your tap card or a manual check-in still boards you.</span></div>
+      <div class="step"><div class="n">02</div><b>Show it at the door</b><span>Hold the QR to the validator, or tap your card on the reader. Tap the code for fullscreen boarding mode — the screen stays awake for you.</span></div>
+      <div class="step"><div class="n">03</div><b>Green light. Go.</b><span>The driver just glances. You're aboard before your friend finds their old paper card.</span></div>
+    </div>
+    <p class="tagline">Riders do <b>less</b> than before — that's the whole point. The security runs invisibly underneath.</p>
   </section>
 
   <section class="band reveal">
@@ -180,6 +236,16 @@
   </section>
 
   <footer>Built by SP Jain students · works for any campus, shuttle, or gated community — brand, fleet and prices are all configuration.</footer>
+</div>
+
+<button class="chatfab" onclick="toggleChat()">💬</button>
+<div class="chat" id="chat">
+  <div class="chead"><span class="logo" style="width:30px;height:30px;font-size:14px">N</span><div><b>Nova assistant</b><br><span>● online — no sign-in needed</span></div></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="cinput">
+    <input type="text" id="cin" placeholder="Ask about the shuttle…">
+    <button onclick="sendChat()">➤</button>
+  </div>
 </div>
 
 <script src="vendor/three.min.js"></script>
@@ -299,13 +365,22 @@ try {   // boardings tick up the moment a validator flashes green — no refresh
   es.addEventListener('trip', pullStats);
 } catch (e) {}
 
+let INFO = null;
 fetch('/api/info').then(r => r.json()).then(i => {
+  INFO = i;
   document.getElementById('brand').textContent = i.brand;
   document.getElementById('org').textContent = i.org;
   document.getElementById('ips').innerHTML = i.ips.length
     ? i.ips.map(ip => `<code class="url">http://${ip}:${i.port}/pass.html</code>`).join('<br>')
     : '<code class="url">single-laptop mode</code>';
 }).catch(() => {});
+
+/* welcome back — a returning student is one tap from their pass */
+const ME = JSON.parse(localStorage.getItem('nova_me') || 'null');
+if (ME) {
+  const cta = document.querySelector('.hero .cta a.btn.neon');
+  cta.textContent = `Open ${ME.name.split(' ')[0]}'s pass →`;
+}
 
 /* scroll reveal */
 const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
@@ -321,6 +396,121 @@ document.querySelectorAll('.tilt').forEach(card => {
   });
   card.addEventListener('pointerleave', () => { card.style.transform = ''; });
 });
+
+/* ---------- Nova assistant — guest mode (no sign-in, answers before questions pile up) ---------- */
+const $c = id => document.getElementById(id);
+
+function nextRunsLocal() {
+  if (!INFO) return null;
+  const [fh, fm] = INFO.firstRun.split(':').map(Number);
+  const [lh, lm] = INFO.lastRun.split(':').map(Number);
+  const now = new Date(), runs = [];
+  const d = new Date(now); d.setHours(fh, fm, 0, 0);
+  const end = new Date(now); end.setHours(lh, lm, 0, 0);
+  while (d <= end) {
+    if (d >= now && runs.length < 3) runs.push(d.toTimeString().slice(0, 5));
+    d.setMinutes(d.getMinutes() + INFO.runEveryMin);
+  }
+  while (runs.length < 3) runs.push(INFO.firstRun);
+  return runs;
+}
+
+function toggleChat() {
+  const c = $c('chat');
+  c.classList.toggle('open');
+  if (c.classList.contains('open') && !$c('msgs').children.length) {
+    botSay(ME
+      ? `Welcome back, ${ME.name.split(' ')[0]}! 👋 Your pass is one tap away — or ask me anything.`
+      : 'Hi! I\'m Nova 👋 Ask me anything about the shuttle — times, prices, how to get your pass. No sign-in needed.',
+      [ME ? 'Open my pass →' : 'How do I get my pass?', 'Next shuttle?', 'Prices']);
+  }
+}
+function addMsg(text, who) {
+  const m = document.createElement('div');
+  m.className = 'msg ' + who; m.textContent = text;
+  $c('msgs').appendChild(m);
+  $c('msgs').scrollTop = $c('msgs').scrollHeight;
+  return m;
+}
+function addChips(opts) {
+  const row = document.createElement('div');
+  row.className = 'chips-row';
+  row.innerHTML = opts.map(o => `<span class="qchip">${o}</span>`).join('');
+  row.querySelectorAll('.qchip').forEach(c => c.onclick = () => { row.remove(); userSay(c.textContent); });
+  $c('msgs').appendChild(row);
+  $c('msgs').scrollTop = $c('msgs').scrollHeight;
+}
+function botSay(text, chips) {
+  const t = addMsg('• • •', 'bot typing');
+  setTimeout(() => {
+    t.classList.remove('typing'); t.textContent = text;
+    if (chips && chips.length) addChips(chips);
+    $c('msgs').scrollTop = $c('msgs').scrollHeight;
+  }, 420 + Math.random() * 320);
+}
+function userSay(text) {
+  /* action chips navigate — convenience over conversation */
+  if (/open my pass/i.test(text)) { location.href = 'pass.html'; return; }
+  if (/open the console/i.test(text)) { location.href = 'admin.html'; return; }
+  addMsg(text, 'me'); respond(text);
+}
+function sendChat() {
+  const v = $c('cin').value.trim();
+  if (!v) return;
+  $c('cin').value = '';
+  userSay(v);
+}
+$c('cin').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+function respond(raw) {
+  const q = raw.toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
+  const p = INFO ? INFO.prices : { single: 5, day: 8, week: 30 };
+
+  /* getting started — the most asked question, answered in one breath */
+  if (/get|start|sign in|login|log in|register|enrol|how do i.*pass|my pass|new here|first time/.test(q)) {
+    return botSay('Easy:\n1. Tap "Open my pass" and sign in once with your student ID + PIN (the office gives you these).\n2. Add it to your home screen — it stays there like an app.\n3. At the bus, tap the code for fullscreen boarding mode and hold it up. Done — about two seconds. ✅', ['Open my pass →', 'Prices', 'Next shuttle?']);
+  }
+
+  /* schedule */
+  if (/next|when|time|schedule|shuttle|bus|timing|hour|first|last|how often|frequen/.test(q)) {
+    const runs = nextRunsLocal();
+    if (!runs) return botSay('One sec — still loading the timetable. Ask me again in a moment!');
+    return botSay(`Next shuttles from Nova Towers:\n🚌 ${runs[0]} (next)\n🚌 ${runs[1]}\n🚌 ${runs[2]}\n\nBuses run ${INFO.firstRun}–${INFO.lastRun}, every ${INFO.runEveryMin} minutes.`, ['Open my pass →', 'Prices']);
+  }
+
+  /* prices */
+  if (/price|cost|how much|fee|pay|pass|ticket|aed/.test(q)) {
+    return botSay(`Nova Towers residents ride free — it's already in your fees. 🎉\n\nLive nearby? Buy in two taps inside the app:\n• Single ride — AED ${p.single}\n• Day pass — AED ${p.day}\n• Weekly — AED ${p.week}`, ['Open my pass →']);
+  }
+
+  /* lost card */
+  if (/lost|stolen|missing|block/.test(q)) {
+    return botSay('No stress — open your pass, find "My tap card", and hit "Block it instantly". Every bus rejects the lost card immediately while your QR keeps working. The office can issue a replacement.', ['Open my pass →']);
+  }
+
+  /* security / how it works */
+  if (/how|work|secure|safe|screenshot|cheat|sneak|fake|qr/.test(q)) {
+    return botSay('Your pass is a QR code that re-generates every 30 seconds with bank-style cryptography — screenshots expire before they can be shared, a borrowed pass shows the wrong photo to the driver, and one green per trip stops window pass-backs. You never notice any of it. That\'s the design: convenience on top, security underneath. 🔐');
+  }
+
+  /* resident vs external */
+  if (/resident|external|nearby|live in|nova towers|who can/.test(q)) {
+    return botSay('Nova Towers residents: the shuttle is included in your fees — your pass just works. Live nearby? You can ride too: grab a single, day, or weekly pass in the app and the same green light welcomes you aboard.', ['Prices', 'Open my pass →']);
+  }
+
+  /* admin */
+  if (/admin|console|office|staff|manage|driver/.test(q)) {
+    return botSay('The logistics console is for the office: live boarding feed, demand heatmap, fleet recommendations, card management. Drivers never touch anything — the validator does the checking.', ['Open the console →']);
+  }
+
+  /* greetings & thanks */
+  if (/^(hi|hello|hey|yo|salam|salaam|marhaba|namaste|hola)\b/.test(q)) {
+    return botSay('Hey! What do you need?', ['How do I get my pass?', 'Next shuttle?', 'Prices']);
+  }
+  if (/thank|shukran|great|nice|cool|awesome/.test(q)) return botSay('Anytime! Safe ride 🚌💨');
+
+  return botSay('I can help with shuttle times, prices, getting your pass, or a lost card. Try one of these:', ['How do I get my pass?', 'Next shuttle?', 'Prices', 'I lost my card']);
+}
 </script>
 </body>
 </html>

@@ -54,7 +54,25 @@
   .qrbox {
     background: #fff; border-radius: 20px; padding: 16px;
     width: fit-content; margin: 0 auto;
+    cursor: pointer; transition: transform .15s var(--spring);
   }
+  .qrbox:active { transform: scale(.97); }
+
+  /* boarding mode — fullscreen QR, screen kept awake, zero fumbling at the door */
+  .boardview {
+    position: fixed; inset: 0; z-index: 300; background: #fff;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 24px; cursor: pointer;
+  }
+  .boardview.show { display: flex; }
+  .boardview .who { display: flex; align-items: center; gap: 10px; }
+  .boardview .who img { width: 42px; height: 42px; border-radius: 12px; }
+  .boardview .who b { font-size: 17px; }
+  .boardview .who span { display: block; font-size: 13px; color: var(--muted); }
+  .boardview img.bigqr { width: min(82vw, 62vh, 440px); height: auto; image-rendering: pixelated; }
+  .boardview .bmeter { width: min(82vw, 440px); height: 6px; border-radius: 3px; background: rgba(0,0,0,.08); overflow: hidden; }
+  .boardview .bmeter > div { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #0a84ff, #8e5cf7); transition: width 1s linear; }
+  .boardview .bhint { font-size: 13px; color: var(--muted); }
   .qrbox img { display: block; width: 224px; height: 224px; image-rendering: pixelated; transition: opacity .35s; }
   .qrbox img.swap { opacity: .15; }
   .meter { height: 5px; background: rgba(255,255,255,.16); border-radius: 3px; margin: 18px 8px 8px; overflow: hidden; }
@@ -187,9 +205,9 @@
         <div><b id="name"></b><span id="subid"></span></div>
         <span class="logo">N</span>
       </div>
-      <div class="qrbox"><img id="qr" alt="Boarding QR"></div>
+      <div class="qrbox" onclick="openBoard()"><img id="qr" alt="Boarding QR"></div>
       <div class="meter"><div id="bar" style="width:100%"></div></div>
-      <div class="meter-label">New code in <span id="secs">30</span> s — screenshots won't board</div>
+      <div class="meter-label">New code in <span id="secs">30</span> s — <b style="color:rgba(255,255,255,.8)">tap the code to board</b></div>
       <div class="statusrow"><span class="chip" id="status"></span></div>
     </div>
     </div><!-- /wallet-scene -->
@@ -241,6 +259,14 @@
 
     <div class="signout"><a href="#" onclick="signout();return false">Sign out</a></div>
   </section>
+</div>
+
+<!-- boarding mode: fullscreen QR, screen stays awake — show, scan, go -->
+<div class="boardview" id="boardview" onclick="closeBoard()">
+  <div class="who"><img id="bphoto" alt=""><div><b id="bname"></b><span id="bid"></span></div></div>
+  <img class="bigqr" id="bigqr" alt="Boarding QR — fullscreen">
+  <div class="bmeter"><div id="bigbar" style="width:100%"></div></div>
+  <div class="bhint">Hold it to the validator · tap anywhere to close</div>
 </div>
 
 <div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
@@ -314,7 +340,38 @@ function drawQr(payload) {
   const img = $('qr');
   img.classList.add('swap');
   setTimeout(() => { img.src = qr.createDataURL(8, 8); img.classList.remove('swap'); }, 180);
+  if (boardOpen) renderBigQr();   // boarding mode rotates in lockstep
 }
+
+/* ---- boarding mode: fullscreen QR + screen wake lock ---- */
+let boardOpen = false, wakeLock = null;
+
+function renderBigQr() {
+  if (!lastPayload) return;
+  const qr = qrcode(0, 'M');
+  qr.addData(lastPayload); qr.make();
+  $('bigqr').src = qr.createDataURL(10, 10);
+}
+async function openBoard() {
+  if (!lastPayload) return;
+  boardOpen = true;
+  $('bphoto').src = ME.photo;
+  $('bname').textContent = ME.name;
+  $('bid').textContent = ME.id;
+  renderBigQr();
+  $('boardview').classList.add('show');
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}  // keep the screen on at the door
+}
+function closeBoard() {
+  boardOpen = false;
+  $('boardview').classList.remove('show');
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async () => {   // re-grab the lock after app switches
+  if (boardOpen && document.visibilityState === 'visible') {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+});
 
 async function refresh() {
   if (!TOKEN) return;
@@ -359,7 +416,9 @@ setInterval(() => {
   if (!TOKEN || $('app').style.display === 'none') return;
   secondsLeft = Math.max(0, secondsLeft - 1);
   $('secs').textContent = secondsLeft;
-  $('bar').style.width = (100 * secondsLeft / slotSeconds) + '%';
+  const w = (100 * secondsLeft / slotSeconds) + '%';
+  $('bar').style.width = w;
+  if (boardOpen) $('bigbar').style.width = w;
   if (secondsLeft <= 0) refresh();
 }, 1000);
 setInterval(() => { if (TOKEN && $('app').style.display !== 'none') refresh(); }, 10000);
