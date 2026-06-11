@@ -50,6 +50,10 @@
     box-shadow: 0 0 28px rgba(10,132,255,.4); }
   .btn.neon:hover { transform: translateY(-1px); box-shadow: 0 0 44px rgba(108,92,247,.55); }
   .hub .hint { text-align: center; font-size: 12.5px; color: #7a7a8e; margin-top: 12px; }
+  .demohint { text-align: center; font-size: 12px; color: #8f9bbe; margin-top: 10px;
+    background: rgba(10,132,255,.1); border: 1px dashed rgba(10,132,255,.35);
+    border-radius: 10px; padding: 7px 10px; }
+  .demohint b { color: #bcd2ff; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
   .kioskpane { text-align: center; padding: 8px 0 4px; }
   .kioskpane .big { font-size: 40px; }
   .kioskpane p { color: #9a9aac; font-size: 14px; margin: 8px 0 16px; }
@@ -132,6 +136,7 @@
       <div class="err" id="err"></div>
       <button class="btn neon" onclick="studentLogin()">Open my pass</button>
       <p class="hint">Sign in once — your pass stays on this phone. PIN comes from the logistics office.</p>
+      <p class="demohint">Demo: <b>NS-101 … NS-108</b> · PIN <b>1234</b></p>
     </div>
 
     <div id="pane-staff" style="display:none">
@@ -141,6 +146,7 @@
       <div class="err" id="aerr"></div>
       <button class="btn neon" onclick="staffLogin()">Open the console</button>
       <p class="hint">Live boarding feed, demand analytics, cards &amp; enrollment.</p>
+      <p class="demohint">Demo password: <b>nova-admin</b></p>
     </div>
 
     <div id="pane-kiosk" style="display:none">
