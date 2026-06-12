@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Seconds — a Nova Shuttle film</title>
+<meta name="theme-color" content="#0b0d1d">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚌</text></svg>'>
+<style>
+  /* ============ TWO SECONDS — a scroll-driven film ============
+     The page is a timeline. Your scroll wheel is the projector.
+     0.0 s → 2.0 s of one boarding, then the data afterlife.     */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: auto; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    background: #0b0d1d; color: #f2f3f7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: rgba(94, 215, 165, .35); }
+
+  #stage { position: fixed; inset: 0; z-index: 0; }
+  .grade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(1200px 700px at 50% 110%, rgba(216,137,90,.18), transparent 55%),
+                linear-gradient(180deg, rgba(11,13,29,.5) 0%, transparent 30%, transparent 70%, rgba(11,13,29,.7) 100%); }
+
+  /* the 2-second timecode rail */
+  .rail { position: fixed; left: 26px; top: 50%; transform: translateY(-50%); z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .rail .line { width: 2px; height: 38vh; background: rgba(255,255,255,.14); border-radius: 2px; position: relative; }
+  .rail .line i { position: absolute; left: 0; top: 0; width: 100%; height: 0%;
+    background: linear-gradient(180deg, #5ed7a5, #2fa97c); border-radius: 2px; }
+  .rail .tc { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px;
+    color: #5ed7a5; font-weight: 600; letter-spacing: .06em; min-width: 64px; text-align: center; }
+  .rail .cap { font-size: 10px; color: rgba(255,255,255,.4); letter-spacing: .18em; text-transform: uppercase; }
+  @media (max-width: 760px) { .rail { display: none; } }
+
+  /* chapters */
+  section { position: relative; z-index: 2; min-height: 100vh;
+    display: flex; align-items: center; padding: 0 8vw; }
+  section.right { justify-content: flex-end; }
+  section.center { justify-content: center; text-align: center; }
+  .panel { max-width: 420px; opacity: 0; transform: translateY(36px);
+    transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+  .panel.in { opacity: 1; transform: none; }
+  .ts { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px;
+    color: #5ed7a5; font-weight: 600; letter-spacing: .08em; }
+  .panel h2 { font-size: clamp(30px, 4.6vw, 52px); font-weight: 700;
+    letter-spacing: -.03em; line-height: 1.06; margin: 12px 0 16px; }
+  .panel p { color: rgba(255,255,255,.66); font-size: 16.5px; line-height: 1.65; }
+  .panel .dim { color: rgba(255,255,255,.4); font-size: 14px; margin-top: 14px; }
+
+  /* intro */
+  .intro { min-height: 160vh; flex-direction: column; justify-content: center; text-align: center; }
+  .intro h1 { font-size: clamp(34px, 6vw, 72px); font-weight: 700; letter-spacing: -.035em; line-height: 1.1; }
+  .intro h1 .line2 { color: rgba(255,255,255,.45); display: block; font-size: .55em; font-weight: 500; margin-top: 18px; }
+  .intro .cue { margin-top: 9vh; color: rgba(255,255,255,.35); font-size: 12px;
+    letter-spacing: .24em; text-transform: uppercase; animation: bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(8px); } }
+  .caret { display: inline-block; width: 3px; height: 1em; background: #5ed7a5;
+    vertical-align: -0.12em; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* live pass card (chapter 2) */
+  .passcard { background: #fffefb; color: #16161a; border-radius: 18px; padding: 18px;
+    width: 240px; margin-top: 22px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.3), 0 24px 60px rgba(0,0,0,.5);
+    transform: rotate(-2.5deg); }
+  .passcard .who { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .passcard .who .av { width: 32px; height: 32px; border-radius: 9px; background: #0E7C66;
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .passcard .who b { font-size: 13.5px; display: block; }
+  .passcard .who span { font-size: 11px; color: #8d8a82; }
+  .passcard img { width: 100%; image-rendering: pixelated; border-radius: 8px; }
+  .passcard .sig { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 11px;
+    color: #8d8a82; margin-top: 10px; word-break: break-all; line-height: 1.5; }
+  .passcard .sig b { color: #0F6E56; }
+
+  /* the five questions (chapter 3) */
+  .qs { margin-top: 22px; display: flex; flex-direction: column; gap: 9px; }
+  .q { display: flex; align-items: center; gap: 11px; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 13px; padding: 11px 14px;
+    font-size: 14.5px; color: rgba(255,255,255,.5);
+    opacity: 0; transform: translateX(-14px); transition: all .5s cubic-bezier(.2,.7,.2,1); }
+  .q.on { opacity: 1; transform: none; color: #fff; }
+  .q .tick { width: 21px; height: 21px; border-radius: 50%; flex: none;
+    border: 1.5px solid rgba(255,255,255,.25); display: flex; align-items: center;
+    justify-content: center; font-size: 11px; color: transparent; transition: all .4s; }
+  .q.on .tick { background: #2fa97c; border-color: #2fa97c; color: #fff; }
+
+  /* green moment (chapter 4) */
+  .ring { width: 120px; height: 120px; border-radius: 50%; background: #2fa97c;
+    display: flex; align-items: center; justify-content: center; font-size: 58px;
+    color: #fff; margin: 0 auto 26px;
+    box-shadow: 0 0 0 0 rgba(47,169,124,.5); }
+  .panel.in .ring { animation: burst 1.2s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes burst { 0% { transform: scale(.4); box-shadow: 0 0 0 0 rgba(47,169,124,.6); }
+    60% { transform: scale(1.06); } 100% { transform: scale(1); box-shadow: 0 0 0 60px rgba(47,169,124,0); } }
+  #flash { position: fixed; inset: 0; z-index: 3; background: #2fa97c; opacity: 0;
+    pointer-events: none; transition: opacity .25s; }
+
+  /* epilogue — the data afterlife */
+  .epi { min-height: 130vh; }
+  .heat { display: flex; gap: 6px; align-items: flex-end; height: 130px; margin: 26px 0 8px; }
+  .heat i { flex: 1; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #5ed7a5, #1f7a58);
+    height: 4px; transition: height 1s cubic-bezier(.2,.7,.2,1); }
+  .heat i.peak { background: linear-gradient(180deg, #f0b35c, #d8895a); }
+  .heat-x { display: flex; gap: 6px; font-size: 10px; color: rgba(255,255,255,.35); }
+  .heat-x span { flex: 1; text-align: center; }
+  .cta { margin-top: 34px; display: flex; gap: 13px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    padding: 13px 26px; border-radius: 980px; font-size: 15px; font-weight: 600;
+    transition: transform .2s cubic-bezier(.2,.8,.2,1.4), box-shadow .2s; }
+  .btn.go { background: #5ed7a5; color: #06281c; box-shadow: 0 8px 28px rgba(94,215,165,.3); }
+  .btn.go:hover { transform: translateY(-2px); box-shadow: 0 14px 38px rgba(94,215,165,.45); }
+  .btn.alt { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.18); }
+  .btn.alt:hover { background: rgba(255,255,255,.14); }
+  footer { position: relative; z-index: 2; text-align: center; padding: 30px 20px 40px;
+    color: rgba(255,255,255,.3); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="grade"></div>
+<div id="flash"></div>
+
+<div class="rail">
+  <span class="cap">film</span>
+  <div class="line"><i id="railfill"></i></div>
+  <span class="tc" id="tc">00.0 s</span>
+</div>
+
+<!-- 0 · opening title -->
+<section class="intro">
+  <h1><span id="type"></span><span class="caret"></span>
+    <span class="line2" id="type2"></span>
+  </h1>
+  <div class="cue">▼ scroll to play</div>
+</section>
+
+<!-- 1 · approach -->
+<section>
+  <div class="panel">
+    <span class="ts">00.2 s</span>
+    <h2>You walk up.</h2>
+    <p>No wallet out. No paper card. No queue inching past a driver squinting at photos. Your hands can stay in your pockets — the work already happened.</p>
+  </div>
+</section>
+
+<!-- 2 · the living pass -->
+<section class="right">
+  <div class="panel">
+    <span class="ts">00.6 s</span>
+    <h2>Your pass is already&nbsp;alive.</h2>
+    <p>Every 30 seconds it re-signs itself with bank-grade cryptography. A screenshot dies before it reaches a friend. A forged code never had a pulse.</p>
+    <div class="passcard">
+      <div class="who"><div class="av">SK</div><div><b>Sara Khan</b><span>NS-102 · Resident</span></div></div>
+      <img id="liveqr" alt="rotating boarding code">
+      <div class="sig">NOVA1·NS-102·<b id="sigslot">59372726</b>·<b id="sighex">a059613191</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · five questions -->
+<section>
+  <div class="panel">
+    <span class="ts">01.2 s</span>
+    <h2>The door asks five questions.</h2>
+    <p>Faster than you can blink, all five are answered offline — no internet required on a moving bus.</p>
+    <div class="qs">
+      <div class="q"><span class="tick">✓</span>Is this code genuinely signed?</div>
+      <div class="q"><span class="tick">✓</span>Was it minted in the last 30 seconds?</div>
+      <div class="q"><span class="tick">✓</span>Does the face match the pass?</div>
+      <div class="q"><span class="tick">✓</span>First boarding this trip?</div>
+      <div class="q"><span class="tick">✓</span>Is there a seat left?</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · green -->
+<section class="center">
+  <div class="panel">
+    <div class="ring">✓</div>
+    <span class="ts">01.8 s</span>
+    <h2>Green. You're aboard.</h2>
+    <p>The driver never moved. The freeloader behind you just became a paying customer — a day pass costs less than the embarrassment.</p>
+  </div>
+</section>
+
+<!-- 5 · epilogue: the data afterlife -->
+<section class="epi">
+  <div class="panel" style="max-width:520px">
+    <span class="ts">after the doors close</span>
+    <h2>Then the real work begins.</h2>
+    <p>Your tap joins thousands of others in a live demand curve. The system watches the 08:00 and 17:00 rushes swell, sees the 14:00 run leave empty, and tells the fleet exactly where to be. Security was the excuse — <b style="color:#fff">logistics intelligence is the product.</b></p>
+    <div class="heat" id="heat"></div>
+    <div class="heat-x"><span>07</span><span>09</span><span>11</span><span>13</span><span>15</span><span>17</span><span>19</span><span>21</span></div>
+    <div class="cta">
+      <a class="btn go" href="/">Enter the real product →</a>
+      <a class="btn alt" href="about.html">How it's built</a>
+    </div>
+  </div>
+</section>
+
+<footer>TWO SECONDS — a film made of code · Nova Shuttle · built for SP Jain, Nova Towers</footer>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script>
+/* ================= the set: a bus at dusk ================= */
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('stage'), antialias: true, alpha: true }); }
+catch (e) { document.getElementById('stage').style.display = 'none'; }
+
+let scene, cam, bus, greenLight, headCones = [], dust;
+if (renderer) {
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0b0d1d, 10, 42);
+  cam = new THREE.PerspectiveCamera(50, 1, .1, 120);
+
+  scene.add(new THREE.AmbientLight(0x8a93c4, .5));
+  const moon = new THREE.DirectionalLight(0xaab4e8, .55); moon.position.set(-6, 10, 4); scene.add(moon);
+  const warm = new THREE.PointLight(0xd8895a, 1.1, 40); warm.position.set(8, 3, -6); scene.add(warm);
+  greenLight = new THREE.PointLight(0x2fa97c, 0, 26); greenLight.position.set(2.4, 1.6, 1.4); scene.add(greenLight);
+
+  const grid = new THREE.GridHelper(220, 110, 0x2a3160, 0x141838);
+  grid.position.y = -1.16; scene.add(grid);
+
+  /* the bus */
+  bus = new THREE.Group();
+  const M = (c, m, r, e, ei) => new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r, emissive: e || 0x000000, emissiveIntensity: ei || 0 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.3, 1.66), M(0x2f5fc4, .5, .38)); body.position.y = .62; bus.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(4.2, .18, 1.54), M(0x1d3a7d, .55, .35)); roof.position.y = 1.36; bus.add(roof);
+  const win = new THREE.Mesh(new THREE.BoxGeometry(3.7, .52, 1.7), M(0x0d1530, .9, .12, 0xffd98c, .65)); win.position.y = .95; bus.add(win);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.62, .12, 1.68), M(0x5ed7a5, .6, .3, 0x5ed7a5, .5)); stripe.position.y = .32; bus.add(stripe);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(.06, 1.1, .78), M(0x9fd8c2, .8, .2, 0x5ed7a5, .25));
+  door.position.set(2.32, .55, .42); bus.add(door);
+  const wm = M(0x0a0a12, .3, .85);
+  [[-1.6, .92], [1.6, .92], [-1.6, -.92], [1.6, -.92]].forEach(([x, z]) => {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, .27, 22), wm);
+    w.rotation.x = Math.PI / 2; w.position.set(x, 0, z * .82); bus.add(w);
+  });
+  const lampM = M(0xfff2c0, .1, .2, 0xffd980, 1);
+  [[.55], [-.55]].forEach(([z]) => {
+    const l = new THREE.Mesh(new THREE.SphereGeometry(.1, 12, 12), lampM);
+    l.position.set(2.32, .5, z); bus.add(l);
+  });
+  scene.add(bus);
+
+  /* night dust */
+  const n = 380, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n * 3; i += 3) {
+    pos[i] = (Math.random() - .5) * 70;
+    pos[i + 1] = Math.random() * 14 - 1;
+    pos[i + 2] = (Math.random() - .5) * 70;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  dust = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x7d9cf0, size: .07, transparent: true, opacity: .6, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(dust);
+
+  function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+}
+
+/* ============== the camera script (scroll = time) ==============
+   keyframes: [progress, camPos, lookAt]                          */
+const KF = [
+  [0.00, [-9.0, 2.2, 15.0], [0, .6, 0]],
+  [0.16, [-7.5, 2.0, 13.0], [0, .6, 0]],     /* title holds wide   */
+  [0.32, [ 1.2, 1.5,  7.4], [1.6, .7, 0]],   /* walk toward door   */
+  [0.50, [ 3.4, 1.2,  4.6], [2.3, .8, .3]],  /* close on the pass  */
+  [0.68, [ 4.6, 1.7,  2.2], [2.0, .7, 0]],   /* orbit the door     */
+  [0.84, [ 2.6, 1.9,  6.0], [1.8, .8, 0]],   /* green: pull back   */
+  [1.00, [ 0.0, 8.5, 10.5], [0, 0, 0]]       /* rise above: data   */
+];
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+function camAt(p) {
+  let i = 0;
+  while (i < KF.length - 2 && p > KF[i + 1][0]) i++;
+  const [p0, c0, l0] = KF[i], [p1, c1, l1] = KF[i + 1];
+  const t = ease(Math.min(1, Math.max(0, (p - p0) / (p1 - p0))));
+  cam.position.set(lerp(c0[0], c1[0], t), lerp(c0[1], c1[1], t), lerp(c0[2], c1[2], t));
+  cam.lookAt(lerp(l0[0], l1[0], t), lerp(l0[1], l1[1], t), lerp(l0[2], l1[2], t));
+}
+
+let P = 0;
+function onScroll() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  P = max > 0 ? Math.min(1, scrollY / max) : 0;
+
+  /* timecode rail: the boarding spans 0.15→0.85 of the page */
+  const t = Math.min(2, Math.max(0, (P - .15) / .7 * 2));
+  document.getElementById('tc').textContent = (t < 10 ? '0' : '') + t.toFixed(1) + ' s';
+  document.getElementById('railfill').style.height = (t / 2 * 100) + '%';
+
+  /* the green flash fires at 1.8 s */
+  const f = document.getElementById('flash');
+  f.style.opacity = (P > .76 && P < .83) ? Math.max(0, .55 - Math.abs(P - .79) * 14) : 0;
+  if (greenLight) greenLight.intensity = P > .74 && P < .92 ? Math.max(0, 3.2 - Math.abs(P - .8) * 26) : 0;
+}
+addEventListener('scroll', onScroll, { passive: true });
+
+const clock = renderer ? new THREE.Clock() : null;
+function frame() {
+  if (renderer) {
+    const t = clock.getElapsedTime();
+    bus.position.y = Math.sin(t * 1.2) * .035;
+    dust.rotation.y = t * .008;
+    camAt(P);
+    renderer.render(scene, cam);
+  }
+  if (!reduced) requestAnimationFrame(frame);
+}
+onScroll(); frame();
+
+/* ================= typed opening title ================= */
+const L1 = 'It takes two seconds to board a bus.';
+const L2 = 'This is everything that happens inside them.';
+(function type() {
+  const el = document.getElementById('type'), el2 = document.getElementById('type2');
+  if (reduced) { el.textContent = L1; el2.textContent = L2; return; }
+  let i = 0, j = 0;
+  const t1 = setInterval(() => {
+    el.textContent = L1.slice(0, ++i);
+    if (i >= L1.length) {
+      clearInterval(t1);
+      const t2 = setInterval(() => {
+        el2.textContent = L2.slice(0, ++j);
+        if (j >= L2.length) clearInterval(t2);
+      }, 26);
+    }
+  }, 38);
+})();
+
+/* ================= chapter reveals ================= */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  e.target.classList.add('in');
+  /* the five questions answer themselves one by one */
+  e.target.querySelectorAll('.q').forEach((q, i) => setTimeout(() => q.classList.add('on'), 350 + i * 420));
+  /* the demand curve grows */
+  if (e.target.querySelector('#heat')) {
+    const hs = [12, 26, 92, 58, 22, 16, 20, 18, 24, 46, 100, 64, 28, 14];
+    const heat = document.getElementById('heat');
+    if (!heat.children.length) {
+      hs.forEach(h => {
+        const b = document.createElement('i');
+        if (h === 100 || h === 92) b.className = 'peak';
+        heat.appendChild(b);
+        requestAnimationFrame(() => requestAnimationFrame(() => b.style.height = (h * 1.25) + 'px'));
+      });
+    }
+  }
+}), { threshold: .35 });
+document.querySelectorAll('.panel').forEach(el => io.observe(el));
+
+/* ================= the living QR ================= */
+function liveQr() {
+  const slot = Math.floor(Date.now() / 1000 / 30);
+  let hex = '';
+  for (let i = 0; i < 10; i++) hex += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(`NOVA1|NS-102|${slot}|${hex}`); qr.make();
+    document.getElementById('liveqr').src = qr.createDataURL(6, 6);
+  } catch (e) {}
+  document.getElementById('sigslot').textContent = slot;
+  document.getElementById('sighex').textContent = hex;
+}
+liveQr();
+/* the signature visibly breathes — scrambling toward each re-mint */
+setInterval(liveQr, 3000);
+if (!reduced) setInterval(() => {
+  const el = document.getElementById('sighex');
+  const s = el.textContent.split('');
+  s[Math.floor(Math.random() * s.length)] = '0123456789abcdef'[Math.floor(Math.random() * 16)];
+  el.textContent = s.join('');
+}, 220);
+</script>
+</body>
+</html>
