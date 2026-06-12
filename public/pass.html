@@ -18,39 +18,51 @@
   /* sign-in */
   .auth { margin-top: 9vh; }
   .auth .logo { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; margin: 0 auto 18px; }
-  .auth h1 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; color: #fff; }
+  .auth h1 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; color: var(--ink); }
   .auth .sub { text-align: center; color: var(--muted); margin: 8px 0 26px; font-size: 15px; }
   .auth .card { padding: 28px; }
   .err { color: #ff6961; font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
   .hint { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
 
-  /* wallet card — 3D tilt with a moving light sheen */
+  /* the boarding card — white stock, real shadow, 3D tilt, warm glint */
   .wallet-scene { perspective: 900px; }
   .wallet {
-    border-radius: 26px; padding: 24px 24px 28px; color: #fff;
-    background: linear-gradient(150deg, #101014 0%, #1c1c26 55%, #16161e 100%);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+    border-radius: 20px; padding: 22px 22px 0; color: var(--ink);
+    background: #fffefb; border: .5px solid #e8e4da;
+    box-shadow: 0 1px 2px rgba(40,35,20,.08), 0 14px 34px rgba(40,35,20,.13);
     position: relative; overflow: hidden;
     transform-style: preserve-3d; will-change: transform;
     transition: box-shadow .3s;
   }
-  .wallet.tilting { box-shadow: 0 34px 80px rgba(10, 30, 90, .45); }
+  .wallet.tilting { box-shadow: 0 2px 4px rgba(40,35,20,.1), 0 22px 50px rgba(40,35,20,.18); }
   .wallet::before {
     content: ''; position: absolute; inset: -40%;
-    background: radial-gradient(420px 320px at var(--shx, 30%) var(--shy, 20%), rgba(255,255,255,.13), transparent 60%);
+    background: radial-gradient(420px 320px at var(--shx, 30%) var(--shy, 20%), rgba(234,210,138,.28), transparent 60%);
     pointer-events: none; transition: opacity .3s;
   }
-  .wallet .head { display: flex; align-items: center; gap: 13px; margin-bottom: 20px; }
-  .wallet img.face { width: 50px; height: 50px; border-radius: 14px; }
+  .wallet .head { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+  .wallet img.face { width: 48px; height: 48px; border-radius: 13px; box-shadow: 0 1px 3px rgba(40,35,20,.2); }
   .wallet .head b { font-size: 17px; display: block; letter-spacing: -.01em; }
-  .wallet .head span { font-size: 13px; color: rgba(255,255,255,.55); }
+  .wallet .head span { font-size: 13px; color: var(--muted); }
   .wallet .head .logo { margin-left: auto; }
   .qrbox {
-    background: #fff; border-radius: 20px; padding: 16px;
+    background: #fff; border-radius: 16px; padding: 14px;
     width: fit-content; margin: 0 auto;
+    border: .5px solid #e8e4da;
+    box-shadow: inset 0 1px 4px rgba(40,35,20,.1);     /* pressed into the paper */
     cursor: pointer; transition: transform .15s var(--spring);
   }
   .qrbox:active { transform: scale(.97); }
+
+  /* perforated tear-line + ticket stub */
+  .perf { border-top: 2px dashed #ddd8cc; position: relative; margin: 18px -22px 0; }
+  .perf .ph { position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg); border: .5px solid #e8e4da; }
+  .perf .ph.l { left: -9px; } .perf .ph.r { right: -9px; }
+  .stub { display: flex; justify-content: space-between; padding: 13px 4px 16px;
+    font-size: 11.5px; color: var(--muted); }
+  .stub b { display: block; color: var(--ink); font-weight: 600; font-size: 15px;
+    letter-spacing: -.01em; margin-top: 2px; }
 
   /* boarding mode — fullscreen QR, screen kept awake, zero fumbling at the door */
   .boardview {
@@ -67,66 +79,73 @@
   .boardview .bmeter { width: min(82vw, 440px); height: 6px; border-radius: 3px; background: rgba(0,0,0,.08); overflow: hidden; }
   .boardview .bmeter > div { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #0a84ff, #8e5cf7); transition: width 1s linear; }
   .boardview .bhint { font-size: 13px; color: var(--muted); }
-  .qrbox img { display: block; width: 224px; height: 224px; image-rendering: pixelated; transition: opacity .35s; }
+  .qrbox img { display: block; width: 216px; height: 216px; image-rendering: pixelated; transition: opacity .35s; }
   .qrbox img.swap { opacity: .15; }
-  .meter { height: 5px; background: rgba(255,255,255,.16); border-radius: 3px; margin: 18px 8px 8px; overflow: hidden; }
-  .meter > div { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #0a84ff, #8e5cf7); transition: width 1s linear; }
-  .meter-label { text-align: center; font-size: 12.5px; color: rgba(255,255,255,.55); }
-  .statusrow { text-align: center; margin-top: 14px; }
-  .statusrow .chip { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.14); }
+  .meter { height: 5px; background: rgba(0,0,0,.08); border-radius: 3px; margin: 16px 8px 8px; overflow: hidden; }
+  .meter > div { height: 100%; border-radius: 3px; background: #1D9E75; transition: width 1s linear; }
+  .meter-label { text-align: center; font-size: 12.5px; color: var(--muted); }
+  .meter-label b { color: var(--ink); }
+  .statusrow { text-align: center; margin-top: 12px; }
+  .statusrow .chip { background: #f1eee6; color: var(--ink); border: .5px solid #e8e4da; }
 
   /* below-card sections */
   .panel { margin-top: 16px; }
-  .panel h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: #fff; }
+  .panel h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: var(--ink); }
   .runs { display: flex; gap: 10px; }
-  .run { flex: 1; text-align: center; background: rgba(10,132,255,.12); border-radius: 16px; padding: 14px 6px 12px; }
-  .run b { font-size: 19px; display: block; letter-spacing: -.02em; color: #fff; }
+  .run { flex: 1; text-align: center; background: #f1eee6; border-radius: 14px; padding: 14px 6px 12px;
+    box-shadow: inset 0 1px 2px rgba(40,35,20,.06); }
+  .run b { font-size: 19px; display: block; letter-spacing: -.02em; color: var(--ink); }
   .run span { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-  .seatbar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 12px; }
-  .seatbar > div { height: 100%; border-radius: 4px; background: var(--good); transition: width .5s; }
+  .seatbar { height: 7px; border-radius: 4px; background: rgba(0,0,0,.07); overflow: hidden; margin-top: 12px; box-shadow: inset 0 1px 2px rgba(40,35,20,.08); }
+  .seatbar > div { height: 100%; border-radius: 4px; background: #1D9E75; transition: width .5s; }
 
   .buy { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   .buy button {
-    border: 1.5px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); border-radius: 16px;
+    border: .5px solid #e8e4da; background: #fffefb; border-radius: 14px;
     padding: 16px 6px 13px; cursor: pointer; font: inherit;
+    box-shadow: 0 1px 2px rgba(40,35,20,.08);
     transition: transform .15s, border-color .15s, box-shadow .15s;
   }
-  .buy button:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(10,132,255,.25); }
-  .buy b { display: block; font-size: 19px; letter-spacing: -.02em; color: #fff; }
+  .buy button:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(40,35,20,.14); }
+  .buy button:active { transform: scale(.97); box-shadow: inset 0 1px 3px rgba(40,35,20,.15); }
+  .buy b { display: block; font-size: 19px; letter-spacing: -.02em; color: var(--ink); }
   .buy span { font-size: 12px; color: var(--muted); font-weight: 600; }
 
   .track svg { width: 100%; height: 70px; display: block; }
-  .track line { stroke: rgba(255,255,255,.12) !important; }
+  .track line { stroke: rgba(0,0,0,.09) !important; }
   .signout { text-align: center; margin-top: 22px; }
   .signout a { color: var(--muted); font-size: 13px; text-decoration: none; }
-  .signout a:hover { color: #ff6961; }
-  .wallet { border: 1px solid rgba(255,255,255,.1); }
-  .tapcard { border: 1px solid rgba(142,92,247,.35); }
+  .signout a:hover { color: #c2452d; }
 
   /* add-to-phone (wallet) */
   .wallet-btn {
     width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 9px;
-    background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.16);
-    border-radius: 16px; padding: 15px; backdrop-filter: blur(8px);
+    background: #16161a; color: #f6f4ef; border: 0;
+    border-radius: 980px; padding: 15px;
+    box-shadow: 0 2px 4px rgba(20,18,12,.3), inset 0 1px 0 rgba(255,255,255,.12);
     font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: transform .18s var(--spring), box-shadow .2s, border-color .2s;
+    transition: transform .18s var(--spring), box-shadow .2s;
   }
-  .wallet-btn:hover { border-color: rgba(255,255,255,.34); }
+  .wallet-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20,18,12,.28), inset 0 1px 0 rgba(255,255,255,.12); }
+  .wallet-btn:active { transform: scale(.98); }
   .wallet-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.25); }
   .wallet-btn svg { width: 20px; height: 20px; }
-  .installed { text-align:center; margin-top:14px; font-size:13px; color: var(--good-deep); font-weight:600; }
+  .installed { text-align:center; margin-top:14px; font-size:13px; color: #0F6E56; font-weight:600; }
 
-  /* my tap card */
+  /* my tap card — the one dark object in the paper world (it's a real card) */
   .tapcard {
     display: flex; align-items: center; gap: 14px;
-    background: linear-gradient(135deg, #0b1020, #1a1340); color: #fff;
-    border-radius: 18px; padding: 18px;
+    background: linear-gradient(160deg, #2a2c33, #15161b); color: #f3f2ee;
+    border-radius: 16px; padding: 17px 18px;
+    box-shadow: 0 1px 2px rgba(20,18,12,.25), 0 8px 20px rgba(20,18,12,.26), inset 0 1px 0 rgba(255,255,255,.07);
   }
-  .tapcard .chipic { width: 46px; height: 34px; border-radius: 7px; background: linear-gradient(135deg, #f5d061, #b8860b); flex: none; }
+  .tapcard .chipic { width: 44px; height: 32px; border-radius: 6px; flex: none;
+    background: linear-gradient(135deg, #ead28a, #b8923f);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.5), inset 0 -1px 1px rgba(80,55,10,.4); }
   .tapcard b { font-size: 15px; display: block; }
-  .tapcard .uid { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px; color: rgba(255,255,255,.6); }
+  .tapcard .uid { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 12.5px; color: #9b9aa4; }
   .tapcard .chip { margin-left: auto; }
-  .lostlink { display: inline-block; margin-top: 12px; color: var(--bad); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .lostlink { display: inline-block; margin-top: 12px; color: #c2452d; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 
   /* Nova assistant */
   .chatfab {
@@ -141,41 +160,41 @@
   .chat {
     position: fixed; right: 16px; bottom: 90px; z-index: 150;
     width: min(370px, calc(100vw - 32px)); height: min(520px, 70vh);
-    background: rgba(16, 16, 28, .92); border-radius: 24px; border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 30px 80px rgba(0,0,0,.6); backdrop-filter: blur(18px);
+    background: #fffefb; border-radius: 22px; border: .5px solid #e8e4da;
+    box-shadow: 0 2px 4px rgba(40,35,20,.08), 0 24px 60px rgba(40,35,20,.18);
     display: flex; flex-direction: column; overflow: hidden;
     opacity: 0; pointer-events: none; transform: translateY(16px) scale(.97);
     transition: opacity .25s, transform .3s var(--ease);
   }
   .chat.open { opacity: 1; pointer-events: auto; transform: none; }
-  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
-  .chat .chead b { font-size: 15px; color: #fff; }
-  .chat .chead span { font-size: 12px; color: #34c759; font-weight: 600; }
+  .chat .chead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #efece4; }
+  .chat .chead b { font-size: 15px; color: var(--ink); }
+  .chat .chead span { font-size: 12px; color: #0F6E56; font-weight: 600; }
   .chat .msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-  .msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.45; white-space: pre-line; }
-  .msg.bot { background: rgba(255,255,255,.09); color: #ecedf3; border-bottom-left-radius: 6px; align-self: flex-start; }
-  .msg.me { background: var(--accent); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
-  .msg.typing { color: #8a8a9e; letter-spacing: 2px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.45; white-space: pre-line; }
+  .msg.bot { background: #f1eee6; color: var(--ink); border-bottom-left-radius: 6px; align-self: flex-start; }
+  .msg.me { background: #16161a; color: #f6f4ef; border-bottom-right-radius: 6px; align-self: flex-end; }
+  .msg.typing { color: #b3afa4; letter-spacing: 2px; }
   .chips-row { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
-  .qchip { background: rgba(10,132,255,.16); color: #8fc1ff; border: 1px solid rgba(10,132,255,.4); border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
-  .qchip:hover { background: rgba(10,132,255,.3); }
-  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .qchip { background: #fffefb; color: var(--ink); border: .5px solid #ddd8cc; border-radius: 980px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(40,35,20,.08); transition: .15s; }
+  .qchip:hover { border-color: #16161a; transform: translateY(-1px); }
+  .chat .cinput { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #efece4; }
   .chat .cinput input { flex: 1; border-radius: 980px; padding: 11px 16px; font-size: 14.5px; }
-  .chat .cinput button { border: 0; background: var(--accent); color: #fff; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; }
+  .chat .cinput button { border: 0; background: #16161a; color: #f6f4ef; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; cursor: pointer; flex: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
 
   /* iOS instruction sheet */
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); opacity:0; pointer-events:none; transition:.3s; z-index: 200; }
   .sheet-bg.show { opacity:1; pointer-events:auto; }
-  .sheet { position: fixed; left:0; right:0; bottom:0; background:#16161f; border: 1px solid rgba(255,255,255,.12); border-bottom: 0; border-radius: 26px 26px 0 0; padding: 26px 24px 34px; max-width: 470px; margin: 0 auto; transform: translateY(110%); transition: transform .4s var(--ease); z-index: 201; }
+  .sheet { position: fixed; left:0; right:0; bottom:0; background:#fffefb; border: .5px solid #e8e4da; border-bottom: 0; border-radius: 26px 26px 0 0; padding: 26px 24px 34px; max-width: 470px; margin: 0 auto; box-shadow: 0 -10px 40px rgba(40,35,20,.18); transform: translateY(110%); transition: transform .4s var(--ease); z-index: 201; }
   .sheet.show { transform: none; }
-  .sheet h3 { font-size: 20px; letter-spacing: -.02em; margin-bottom: 6px; color: #fff; }
-  .sheet li { color: #d6d7e2; }
+  .sheet h3 { font-size: 20px; letter-spacing: -.02em; margin-bottom: 6px; color: var(--ink); }
+  .sheet li { color: var(--ink); }
   .sheet ol { margin: 16px 0 0 0; padding-left: 0; list-style: none; counter-reset: s; }
   .sheet li { counter-increment: s; position: relative; padding: 10px 0 10px 44px; font-size: 15px; }
-  .sheet li::before { content: counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:50%; background: var(--accent); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .sheet li::before { content: counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:50%; background: #16161a; color:#f6f4ef; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
 </style>
 </head>
-<body class="dark-app">
+<body class="paper">
 <div class="bgveil"></div>
 <div class="wrap">
 
@@ -208,8 +227,14 @@
       </div>
       <div class="qrbox" onclick="openBoard()"><img id="qr" alt="Boarding QR"></div>
       <div class="meter"><div id="bar" style="width:100%"></div></div>
-      <div class="meter-label">New code in <span id="secs">30</span> s — <b style="color:rgba(255,255,255,.8)">tap the code to board</b></div>
+      <div class="meter-label"><b>Tap the code to board</b> · new in <span id="secs">30</span> s</div>
       <div class="statusrow"><span class="chip" id="status"></span></div>
+      <div class="perf"><span class="ph l"></span><span class="ph r"></span></div>
+      <div class="stub">
+        <span>Next bus<b id="stub-next">—</b></span>
+        <span style="text-align:center">Seats free<b id="stub-seats">—</b></span>
+        <span style="text-align:right">New code<b><span id="stub-secs">30</span> s</b></span>
+      </div>
     </div>
     </div><!-- /wallet-scene -->
 
@@ -295,7 +320,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="vendor/three.min.js"></script>
-<script src="vendor/nova-bg.js" data-dim="0.55"></script>
+<script src="vendor/nova-bg.js" data-theme="paper" data-dim="0.5"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script>
 let TOKEN = localStorage.getItem('nova_token') || '';
@@ -406,6 +431,8 @@ async function refresh() {
   $('status').textContent = d.status.label + ' · ' + d.status.detail;
   $('seats').textContent = d.seatsLeft; $('cap').textContent = d.capacity;
   $('seatfill').style.width = (100 * d.seatsLeft / d.capacity) + '%';
+  $('stub-next').textContent = d.nextRuns[0];
+  $('stub-seats').textContent = d.seatsLeft;
   $('runs').innerHTML = d.nextRuns.map((t, i) =>
     `<div class="run"><b>${t}</b><span>${i === 0 ? 'next' : '&nbsp;'}</span></div>`).join('');
   $('p1').textContent = 'AED ' + d.prices.single;
@@ -429,6 +456,7 @@ setInterval(() => {
   if (!TOKEN || $('app').style.display === 'none') return;
   secondsLeft = Math.max(0, secondsLeft - 1);
   $('secs').textContent = secondsLeft;
+  $('stub-secs').textContent = secondsLeft;
   const w = (100 * secondsLeft / slotSeconds) + '%';
   $('bar').style.width = w;
   if (boardOpen) $('bigbar').style.width = w;

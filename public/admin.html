@@ -11,19 +11,18 @@
   .gate {
     position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
     background:
-      radial-gradient(800px 500px at 10% 0%, rgba(142,92,247,.16), transparent 60%),
-      radial-gradient(800px 500px at 90% 100%, rgba(10,132,255,.16), transparent 60%),
-      #050510;
+      radial-gradient(900px 500px at 50% -5%, rgba(234,210,138,.18), transparent 60%),
+      #f6f4ef;
   }
   .gate .card { width: min(380px, 90vw); padding: 30px; }
   .gate .logo { width: 52px; height: 52px; border-radius: 15px; font-size: 24px; margin: 0 auto 16px; }
-  .gate h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 4px; color: #fff; }
+  .gate h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 4px; color: #16161a; }
   .gate p { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
-  .err { color: #ff6961; font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
+  .err { color: #c2452d; font-size: 14px; min-height: 20px; margin: 6px 2px 4px; font-weight: 500; }
   .hint { text-align: center; margin-top: 14px; font-size: 13px; color: var(--muted); }
 
   .head { display: flex; align-items: center; gap: 12px; padding: 26px 0 20px; }
-  .head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; color: #fff; }
+  .head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; color: #16161a; }
   .head .sub { font-size: 13px; color: var(--muted); }
   .head .out { margin-left: auto; }
 
@@ -34,7 +33,7 @@
 
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
-  .card h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: #fff; }
+  .card h2 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 14px; color: #16161a; }
   canvas { width: 100%; height: 190px; }
   .scroll { max-height: 330px; overflow: auto; }
   .stulist img { width: 32px; height: 32px; border-radius: 9px; vertical-align: middle; margin-right: 9px; }
@@ -48,13 +47,13 @@
   .livedot i { width:8px; height:8px; border-radius:50%; background: var(--good); animation: lpulse 1.6s infinite; }
   @keyframes lpulse { 0%,100% { box-shadow:0 0 0 0 rgba(52,199,89,.5) } 70% { box-shadow:0 0 0 6px rgba(52,199,89,0) } }
   .auditlist { font-size: 13px; }
-  .auditlist div { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; gap: 10px; }
+  .auditlist div { padding: 7px 0; border-bottom: 1px solid #efece4; display: flex; gap: 10px; }
   .auditlist div:last-child { border-bottom: 0; }
   .auditlist .t { color: var(--muted); flex: none; width: 64px; }
   .auditlist b { font-weight: 600; }
 </style>
 </head>
-<body class="dark-app">
+<body class="paper">
 <div class="bgveil"></div>
 
 <div class="gate" id="gate">
@@ -113,7 +112,7 @@
       <p class="muted" id="heat-empty" style="display:none; margin-top:10px">No boarding history yet. Hit <b>Load demo data</b> above to see a full day.</p>
     </div>
 
-    <div class="card" style="margin-bottom:16px; background: linear-gradient(135deg,#0b1020,#1a1340); color:#fff; border:0">
+    <div class="card" style="margin-bottom:16px; background: linear-gradient(160deg,#2a2c33,#15161b); color:#fff; border:0; box-shadow:0 2px 4px rgba(20,18,12,.2), 0 14px 34px rgba(20,18,12,.2)">
       <h2 style="color:#fff">🚌 Fleet recommendation</h2>
       <div id="recs" style="margin-top:6px"></div>
     </div>
@@ -165,7 +164,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="vendor/three.min.js"></script>
-<script src="vendor/nova-bg.js" data-dim="0.4"></script>
+<script src="vendor/nova-bg.js" data-theme="paper" data-dim="0.45"></script>
 <script>
 let TOKEN = localStorage.getItem('nova_admin') || '';
 const $ = id => document.getElementById(id);
@@ -262,7 +261,7 @@ function drawChart(perTrip) {
   if (!perTrip.length) return;
   const max = Math.max(8, ...perTrip.map(t => t.green + t.red));
   const baseY = 320, top = 30;
-  ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(40,35,20,.1)'; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = baseY - (i / 4) * (baseY - top);
     ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(660, y); ctx.stroke();
@@ -275,9 +274,9 @@ function drawChart(perTrip) {
     if (gh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh, bw, gh, [6, 6, 0, 0]); ctx.fill(); }
     ctx.fillStyle = '#ff3b30';
     if (rh > 0) { ctx.beginPath(); ctx.roundRect(x, baseY - gh - rh, bw, rh, [6, 6, 6, 6]); ctx.fill(); }
-    ctx.fillStyle = '#ffffff'; ctx.font = '600 17px -apple-system, Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#16161a'; ctx.font = '600 17px -apple-system, Segoe UI'; ctx.textAlign = 'center';
     if (t.green + t.red) ctx.fillText(t.green + (t.red ? '+' + t.red : ''), x + bw / 2, baseY - gh - rh - 10);
-    ctx.fillStyle = '#9a9aac'; ctx.font = '500 14px -apple-system, Segoe UI';
+    ctx.fillStyle = '#8d8a82'; ctx.font = '500 14px -apple-system, Segoe UI';
     ctx.fillText(t.label, x + bw / 2, 352);
   });
 }
@@ -383,7 +382,7 @@ async function loadAnalytics() {
     const pct = Math.round(100 * n / totC);
     return `<div style="margin:12px 0">
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px"><span>${l}</span><b>${n} · ${pct}%</b></div>
-      <div style="height:8px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:5px"></div></div></div>`;
+      <div style="height:8px;border-radius:5px;background:rgba(40,35,20,.08);overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:5px"></div></div></div>`;
   }).join('');
 
   $('busiest').querySelector('tbody').innerHTML = a.busiest.filter(t => t.boarded > 0).map(t =>

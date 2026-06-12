@@ -182,6 +182,67 @@ tr:last-child td { border-bottom: 0; }
 ::selection { background: rgba(0, 113, 227, .2); }
 
 /* ============================================================
+   PAPER THEME — minimal skeuomorphic world. Warm paper surfaces,
+   physical cards with real shadows, ink typography. Pages opt in
+   with <body class="paper">; the ambient 3D renders in daylight.
+   ============================================================ */
+body.paper {
+  --bg: #f6f4ef;
+  --bg-soft: #faf9f5;
+  --ink: #16161a;
+  --muted: #8d8a82;
+  --line: #e8e4da;
+  --line-2: #ddd8cc;
+  --card: #fffefb;
+  --accent: #16161a;            /* primary actions are ink-black pills */
+  --accent-deep: #000;
+  --shadow: 0 1px 2px rgba(40,35,20,.08), 0 6px 18px rgba(40,35,20,.09);
+  --shadow-lift: 0 2px 4px rgba(40,35,20,.1), 0 14px 34px rgba(40,35,20,.14);
+  --shadow-soft: 0 1px 2px rgba(40,35,20,.07);
+  background: var(--bg); color: var(--ink);
+}
+body.paper .bgveil { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(900px 480px at 50% -5%, rgba(234,210,138,.14), transparent 60%); }
+body.paper .wrap, body.paper .nav, body.paper .gate { position: relative; z-index: 2; }
+
+body.paper .nav { background: rgba(246,244,239,.78); border-bottom: 1px solid var(--line); }
+body.paper .nav a.link { color: var(--muted); }
+body.paper .nav a.link:hover { color: var(--ink); background: rgba(0,0,0,.05); }
+body.paper .logo { background: var(--ink); box-shadow: 0 2px 6px rgba(20,18,12,.25); }
+
+body.paper .card, body.paper .tile, body.paper .stat, body.paper .feat {
+  background: var(--card); border: .5px solid var(--line);
+  box-shadow: var(--shadow); backdrop-filter: none;
+}
+body.paper input[type=text], body.paper input[type=password], body.paper select {
+  background: var(--bg-soft); border-color: var(--line-2); color: var(--ink);
+}
+body.paper input::placeholder { color: #b3afa4; }
+body.paper input:focus, body.paper select:focus { border-color: var(--ink); box-shadow: 0 0 0 4px rgba(22,22,26,.08); }
+
+body.paper .btn { background: var(--ink); color: #f6f4ef;
+  box-shadow: 0 2px 4px rgba(20,18,12,.3), inset 0 1px 0 rgba(255,255,255,.12); }
+body.paper .btn:hover { background: #000; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(20,18,12,.3), inset 0 1px 0 rgba(255,255,255,.12); }
+body.paper .btn.ghost { background: var(--card); color: var(--ink); border: .5px solid var(--line-2); box-shadow: var(--shadow-soft); }
+body.paper .btn.ghost:hover { border-color: var(--ink); background: var(--card); }
+
+body.paper th { color: var(--muted); border-bottom-color: var(--line); }
+body.paper td { border-bottom-color: var(--line); }
+body.paper .pin { background: rgba(0,0,0,.06); color: var(--ink); }
+
+body.paper .tabs { background: #efece4; border-radius: 14px; }
+body.paper .tabs button { color: var(--muted); }
+body.paper .tabs button.active { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(40,35,20,.12); }
+
+body.paper .chip.good { background: #E1F5EE; color: #0F6E56; }
+body.paper .chip.bad { background: #FCEBEB; color: #A32D2D; }
+body.paper .chip.info { background: #E6F1FB; color: #185FA5; }
+body.paper .chip.warn { background: #FAEEDA; color: #854F0B; }
+
+body.paper .toast { background: rgba(22,22,26,.94); }
+body.paper h2.section, body.paper .head h1 { color: var(--ink); }
+
+/* ============================================================
    DARK APP THEME — one futuristic world across every page.
    Pages opt in with <body class="dark-app"> and the shared
    3D background (vendor/nova-bg.js) renders behind everything.
