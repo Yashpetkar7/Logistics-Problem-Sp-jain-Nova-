@@ -179,6 +179,7 @@
   </div>
 </div>
 
+<script src="vendor/ui.js"></script>
 <script src="vendor/three.min.js"></script>
 <script>
 /* ---------- the 3D stage: clay shuttle in soft daylight ---------- */
@@ -298,31 +299,38 @@ function setRole(r) {
   });
 }
 
-async function studentLogin() {
-  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sid: $c('sid').value.trim(), pin: $c('pin').value.trim() }) });
-  const d = await r.json();
-  if (!r.ok) {
-    $c('err').textContent = d.error || 'Sign-in failed';
-    const h = $c('hub'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake');
-    return;
-  }
-  localStorage.setItem('nova_token', d.token);
-  localStorage.setItem('nova_me', JSON.stringify(d.student));
-  location.href = 'pass.html';
+function hubShake(elId, msg) {
+  $c(elId).textContent = msg;
+  const h = $c('hub'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake');
 }
 
-async function staffLogin() {
-  const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: $c('apw').value }) });
-  const d = await r.json();
-  if (!r.ok) {
-    $c('aerr').textContent = d.error || 'Sign-in failed';
-    const h = $c('hub'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake');
-    return;
-  }
-  localStorage.setItem('nova_admin', d.token);
-  location.href = 'admin.html';
+function studentLogin() {
+  const btn = document.querySelector('#pane-student .btn');
+  /* already signed in on this phone + empty form → straight to the pass */
+  if (!$c('sid').value.trim() && localStorage.getItem('nova_token')) { location.href = 'pass.html'; return; }
+  UI.busy(btn, async () => {
+    $c('err').textContent = '';
+    try {
+      const d = await UI.api('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sid: $c('sid').value.trim(), pin: $c('pin').value.trim() }) });
+      localStorage.setItem('nova_token', d.token);
+      localStorage.setItem('nova_me', JSON.stringify(d.student));
+      location.href = 'pass.html';
+    } catch (e) { hubShake('err', e.message); }
+  });
+}
+
+function staffLogin() {
+  const btn = document.querySelector('#pane-staff .btn');
+  UI.busy(btn, async () => {
+    $c('aerr').textContent = '';
+    try {
+      const d = await UI.api('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: $c('apw').value }) });
+      localStorage.setItem('nova_admin', d.token);
+      location.href = 'admin.html';
+    } catch (e) { hubShake('aerr', e.message); }
+  });
 }
 
 ['sid', 'pin'].forEach(id => $c(id).addEventListener('keydown', e => { if (e.key === 'Enter') studentLogin(); }));

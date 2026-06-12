@@ -225,7 +225,7 @@
         <div><b id="name"></b><span id="subid"></span></div>
         <span class="logo">N</span>
       </div>
-      <div class="qrbox" onclick="openBoard()"><img id="qr" alt="Boarding QR"></div>
+      <div class="qrbox skel" id="qrwrap" onclick="openBoard()"><img id="qr" alt="Boarding QR" style="min-height:216px"></div>
       <div class="meter"><div id="bar" style="width:100%"></div></div>
       <div class="meter-label"><b>Tap the code to board</b> · new in <span id="secs">30</span> s</div>
       <div class="statusrow"><span class="chip" id="status"></span></div>
@@ -264,9 +264,9 @@
     <div class="card panel" id="shop" style="display:none">
       <h2>Get a pass</h2>
       <div class="buy">
-        <button onclick="buy('single')"><b id="p1"></b><span>1 ride</span></button>
-        <button onclick="buy('day')"><b id="p2"></b><span>Day</span></button>
-        <button onclick="buy('week')"><b id="p3"></b><span>Week</span></button>
+        <button onclick="buy('single', event)"><b id="p1"></b><span>1 ride</span></button>
+        <button onclick="buy('day', event)"><b id="p2"></b><span>Day</span></button>
+        <button onclick="buy('week', event)"><b id="p3"></b><span>Week</span></button>
       </div>
       <p class="muted" style="margin-top:12px;font-size:13px">Payment is simulated in this MVP.</p>
     </div>
@@ -319,6 +319,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="vendor/ui.js"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/nova-bg.js" data-theme="paper" data-dim="0.5"></script>
 <script src="vendor/qrcode.min.js"></script>
@@ -330,19 +331,21 @@ let lastPayload = '', secondsLeft = 30, slotSeconds = 30, LAST = null;
 const $ = id => document.getElementById(id);
 const auth = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
 
-async function login() {
-  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sid: $('sid').value.trim(), pin: $('pin').value.trim() }) });
-  const d = await r.json();
-  if (!r.ok) {
-    $('err').textContent = d.error || 'Sign-in failed';
-    const c = $('authcard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
-    return;
-  }
-  TOKEN = d.token; ME = d.student;
-  localStorage.setItem('nova_token', TOKEN);
-  localStorage.setItem('nova_me', JSON.stringify(ME));
-  enter();
+function login() {
+  UI.busy(document.querySelector('#authcard .btn'), async () => {
+    $('err').textContent = '';
+    try {
+      const d = await UI.api('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sid: $('sid').value.trim(), pin: $('pin').value.trim() }) });
+      TOKEN = d.token; ME = d.student;
+      localStorage.setItem('nova_token', TOKEN);
+      localStorage.setItem('nova_me', JSON.stringify(ME));
+      enter();
+    } catch (e) {
+      $('err').textContent = e.message;
+      const c = $('authcard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    }
+  });
 }
 
 function signout() {
@@ -401,12 +404,19 @@ document.addEventListener('visibilitychange', async () => {   // re-grab the loc
   }
 });
 
+let netWarned = false;
 async function refresh() {
   if (!TOKEN) return;
-  const r = await fetch('/api/passcode', { headers: auth() });
-  if (r.status === 401) { signout(); return; }
-  if (!r.ok) return;
-  const d = await r.json();
+  let d;
+  try {
+    d = await UI.api('/api/passcode', { headers: auth() });
+    netWarned = false;
+  } catch (e) {
+    if (e.status === 401) { signout(); return; }
+    if (!netWarned) { UI.toast(e.message, true); netWarned = true; }   // warn once, don't spam
+    return;
+  }
+  $('qrwrap') && $('qrwrap').classList.remove('skel');
   LAST = d;
   secondsLeft = d.secondsLeft; slotSeconds = d.slotSeconds;
   if (d.payload !== lastPayload) { lastPayload = d.payload; drawQr(d.payload); }
@@ -440,10 +450,19 @@ async function refresh() {
   $('p3').textContent = 'AED ' + d.prices.week;
 }
 
-async function buy(type) {
-  const r = await fetch('/api/buy', { method: 'POST', headers: auth(), body: JSON.stringify({ type }) });
-  const d = await r.json();
-  if (d.ok) { toast('Pass activated — you\'re good to ride'); refresh(); }
+function buy(type, ev) {
+  const btn = ev ? ev.currentTarget : null;
+  UI.busy(btn, async () => {
+    try {
+      await UI.api('/api/buy', { method: 'POST', headers: auth(), body: JSON.stringify({ type }) });
+      toast('Pass activated — you\'re good to ride 🎉');
+      if (navigator.vibrate) navigator.vibrate(40);
+      refresh();
+    } catch (e) {
+      if (e.status === 401) { signout(); return; }
+      UI.toast(e.message, true);
+    }
+  });
 }
 
 function toast(msg) {
@@ -515,10 +534,12 @@ setInterval(() => {
 /* ---- card: report lost ---- */
 async function reportLost() {
   if (!confirm('Block your card now? It will flash red on every bus until the office re-activates it. Your QR pass keeps working.')) return;
-  const r = await fetch('/api/report-lost', { method: 'POST', headers: auth() });
-  const d = await r.json();
-  if (d.ok) { toast('Card blocked — your QR pass still works'); refresh(); }
-  else toast(d.error || 'Could not block the card');
+  try {
+    await UI.api('/api/report-lost', { method: 'POST', headers: auth() });
+    toast('Card blocked — your QR pass still works');
+    if (navigator.vibrate) navigator.vibrate([30, 60, 30]);
+    refresh();
+  } catch (e) { UI.toast(e.message, true); }
 }
 
 /* ---- Nova assistant (rule-based, fully offline — and it acts, not just talks) ---- */

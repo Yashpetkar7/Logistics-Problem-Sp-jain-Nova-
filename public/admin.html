@@ -51,6 +51,29 @@
   .auditlist div:last-child { border-bottom: 0; }
   .auditlist .t { color: var(--muted); flex: none; width: 64px; }
   .auditlist b { font-weight: 600; }
+
+  /* modal system — no more prompt()/alert() */
+  .mback { position: fixed; inset: 0; z-index: 200; background: rgba(22,22,26,.4);
+    opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .mback.show { opacity: 1; pointer-events: auto; }
+  .modal { position: fixed; left: 50%; top: 50%; z-index: 201; width: min(400px, 92vw);
+    transform: translate(-50%, -50%) scale(.94); opacity: 0; pointer-events: none;
+    background: #fffefb; border: .5px solid #e8e4da; border-radius: 20px; padding: 24px;
+    box-shadow: 0 2px 4px rgba(40,35,20,.1), 0 30px 80px rgba(40,35,20,.3);
+    transition: opacity .22s, transform .25s cubic-bezier(.2,.8,.2,1.2); }
+  .modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+  .modal h3 { font-size: 18px; letter-spacing: -.015em; color: #16161a; margin-bottom: 6px; }
+  .modal p { font-size: 14px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; white-space: pre-line; }
+  .modal p .big { font-size: 26px; color: #16161a; font-weight: 700; letter-spacing: .06em;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace; display: block; margin-top: 8px; }
+  .modal input { margin-bottom: 14px; }
+  .m-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .m-actions .btn.danger { background: #A32D2D; color: #fff; }
+  .m-actions .btn.danger:hover { background: #8a2424; }
+
+  /* student search */
+  .findrow { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .findrow input { max-width: 260px; }
 </style>
 </head>
 <body class="paper">
@@ -145,12 +168,15 @@
     </div>
     <div class="card stulist">
       <h2>Students</h2>
+      <div class="findrow"><input type="text" id="find" placeholder="Search name or ID…" oninput="renderStudents()"></div>
       <div class="scroll"><table id="stu"><thead><tr><th>Student</th><th>PIN</th><th>NFC card</th><th>Status</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:16px">
-    <h2>Live boarding feed <span class="livedot"><i></i>LIVE</span> <span class="muted" style="font-weight:400">— rows appear the moment a door scans</span></h2>
+    <h2>Live boarding feed <span class="livedot"><i></i>LIVE</span>
+      <button class="btn small ghost" style="float:right" onclick="exportCsv(event)">Export CSV</button>
+      <span class="muted" style="font-weight:400">— rows appear the moment a door scans</span></h2>
     <div class="scroll"><table id="taps"><thead><tr><th></th><th>Time</th><th>Who</th><th>Bus</th><th>Via</th><th>Detail</th></tr></thead><tbody></tbody></table></div>
   </div>
 
@@ -163,6 +189,18 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="mback" id="mback"></div>
+<div class="modal" id="modal">
+  <h3 id="m-title"></h3>
+  <p id="m-body"></p>
+  <input type="text" id="m-input" style="display:none" autocomplete="off">
+  <div class="m-actions">
+    <button class="btn small ghost" id="m-cancel">Cancel</button>
+    <button class="btn small" id="m-ok">OK</button>
+  </div>
+</div>
+
+<script src="vendor/ui.js"></script>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/nova-bg.js" data-theme="paper" data-dim="0.45"></script>
 <script>
@@ -171,17 +209,19 @@ const $ = id => document.getElementById(id);
 const fmt = iso => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const auth = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
 
-async function adminLogin() {
-  const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: $('pw').value }) });
-  const d = await r.json();
-  if (!r.ok) {
-    $('gerr').textContent = d.error || 'Sign-in failed';
-    const c = $('gatecard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
-    return;
-  }
-  TOKEN = d.token; localStorage.setItem('nova_admin', TOKEN);
-  enter();
+function adminLogin() {
+  UI.busy(document.querySelector('#gatecard .btn'), async () => {
+    $('gerr').textContent = '';
+    try {
+      const d = await UI.api('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: $('pw').value }) });
+      TOKEN = d.token; localStorage.setItem('nova_admin', TOKEN);
+      enter();
+    } catch (e) {
+      $('gerr').textContent = e.message;
+      const c = $('gatecard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    }
+  });
 }
 function signout() { localStorage.removeItem('nova_admin'); location.reload(); }
 function enter() {
@@ -211,10 +251,18 @@ function startLive() {
   } catch (e) { setInterval(refresh, 4000); }
 }
 
+let sumWarned = false;
 async function refresh() {
-  const r = await fetch('/api/admin/summary', { headers: auth() });
-  if (r.status === 401) { signout(); return; }
-  const d = await r.json();
+  let d;
+  try {
+    d = await UI.api('/api/admin/summary', { headers: auth() });
+    sumWarned = false;
+  } catch (e) {
+    if (e.status === 401) { signout(); return; }
+    if (!sumWarned) { UI.toast(e.message, true); sumWarned = true; }
+    return;
+  }
+  LASTSUM = d;
   const s = d.stats;
   $('stats').innerHTML = [
     [s.boardingsToday, 'boardings today'],
@@ -235,19 +283,7 @@ async function refresh() {
     `<tr><td><span class="dot ${t.result === 'green' ? 'g' : 'r'}"></span></td><td>${fmt(t.time)}</td><td>${t.name}</td><td>${t.busId}</td><td>${t.via || 'qr'}</td><td>${t.reason}</td></tr>`
   ).join('') || '<tr><td colspan="6" class="muted">No taps yet — scan something on the validator.</td></tr>';
 
-  const students = await (await fetch('/api/students', { headers: auth() })).json();
-  $('stu').querySelector('tbody').innerHTML = students.map(s => {
-    const blocked = s.cardStatus === 'blocked';
-    const cardCell = s.cardUid
-      ? `<span class="pin">${s.cardUid.slice(0, 8)}</span>
-         <span class="chip ${blocked ? 'bad' : 'good'}" style="margin:0 4px">${blocked ? 'blocked' : 'active'}</span>
-         <span class="cardlink" onclick="setCard('${s.id}','${blocked ? 'active' : 'blocked'}')">${blocked ? 'unblock' : 'block'}</span>`
-      : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`;
-    return `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
-     <td><span class="pin">••••</span> <span class="cardlink" onclick="resetPin('${s.id}','${s.name.replace(/'/g, '')}')">reset</span></td>
-     <td>${cardCell}</td>
-     <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`;
-  }).join('');
+  try { STUDENTS = await UI.api('/api/students', { headers: auth() }); renderStudents(); } catch (e) {}
 
   $('audit').innerHTML = (d.audit || []).map(a =>
     `<div><span class="t">${fmt(a.time)}</span><span><b>${a.action}</b> ${a.detail || ''}</span></div>`
@@ -281,40 +317,111 @@ function drawChart(perTrip) {
   });
 }
 
+/* ---- students table with live search ---- */
+let STUDENTS = [], LASTSUM = null;
+function renderStudents() {
+  const q = ($('find').value || '').toLowerCase();
+  const list = STUDENTS.filter(s => !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+  $('stu').querySelector('tbody').innerHTML = list.map(s => {
+    const blocked = s.cardStatus === 'blocked';
+    const cardCell = s.cardUid
+      ? `<span class="pin">${s.cardUid.slice(0, 8)}</span>
+         <span class="chip ${blocked ? 'bad' : 'good'}" style="margin:0 4px">${blocked ? 'blocked' : 'active'}</span>
+         <span class="cardlink" onclick="setCard('${s.id}','${blocked ? 'active' : 'blocked'}')">${blocked ? 'unblock' : 'block'}</span>`
+      : `<span class="cardlink" onclick="assign('${s.id}','${s.name.replace(/'/g, '')}')">+ assign</span>`;
+    return `<tr><td><img src="${s.photo}">${s.name}<div class="muted" style="font-size:12px;margin-left:41px">${s.id}</div></td>
+     <td><span class="pin">••••</span> <span class="cardlink" onclick="resetPin('${s.id}','${s.name.replace(/'/g, '')}')">reset</span></td>
+     <td>${cardCell}</td>
+     <td><span class="chip ${s.status.ok ? 'good' : 'bad'}">${s.status.label}</span></td></tr>`;
+  }).join('') || `<tr><td colspan="4" class="muted">No students match "${q}"</td></tr>`;
+}
+
+/* ---- one-click CSV of the boarding log ---- */
+function exportCsv(ev) {
+  if (!LASTSUM) return UI.toast('Nothing to export yet', true);
+  UI.busy(ev.currentTarget, () => {
+    const rows = [['time', 'student', 'bus', 'channel', 'result', 'detail']];
+    for (const t of LASTSUM.recent) rows.push([t.time, t.name, t.busId, t.via || 'qr', t.result, t.reason]);
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'nova-boardings-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click(); URL.revokeObjectURL(a.href);
+    toast('Boarding log exported');
+  });
+}
+
+/* ---- modal system: ask({...}) → Promise<value|true|null> ---- */
+function ask(o) {
+  return new Promise(res => {
+    $('m-title').innerHTML = o.title;
+    $('m-body').innerHTML = o.body || '';
+    const inp = $('m-input');
+    inp.style.display = o.input ? '' : 'none';
+    inp.value = ''; inp.placeholder = o.placeholder || '';
+    const ok = $('m-ok'), cancel = $('m-cancel');
+    ok.textContent = o.okText || 'OK';
+    ok.className = 'btn small' + (o.danger ? ' danger' : '');
+    cancel.style.display = o.noCancel ? 'none' : '';
+    $('mback').classList.add('show'); $('modal').classList.add('show');
+    if (o.input) setTimeout(() => inp.focus(), 120);
+    function close(v) {
+      $('mback').classList.remove('show'); $('modal').classList.remove('show');
+      ok.onclick = cancel.onclick = $('mback').onclick = inp.onkeydown = null;
+      res(v);
+    }
+    ok.onclick = () => close(o.input ? (inp.value.trim() || null) : true);
+    cancel.onclick = () => close(null);
+    $('mback').onclick = () => close(null);
+    inp.onkeydown = e => { if (e.key === 'Enter') ok.onclick(); };
+  });
+}
+
 async function resetPin(sid, name) {
-  if (!confirm(`Generate a new PIN for ${name}? The old one stops working immediately.`)) return;
-  const r = await fetch('/api/reset-pin', { method: 'POST', headers: auth(), body: JSON.stringify({ sid }) });
-  const d = await r.json();
-  if (d.ok) alert(`New PIN for ${name}: ${d.pin}\n\nWrite it down now — PINs are stored hashed and can't be shown again.`);
+  if (!await ask({ title: 'Reset PIN', body: `Generate a new PIN for <b>${name}</b>? The old one stops working immediately.`, okText: 'Generate' })) return;
+  try {
+    const d = await UI.api('/api/reset-pin', { method: 'POST', headers: auth(), body: JSON.stringify({ sid }) });
+    await ask({ title: 'New PIN for ' + name, body: `Hand it over now — PINs are stored hashed and can't be shown again.<span class="big">${d.pin}</span>`, okText: 'Done', noCancel: true });
+  } catch (e) { UI.toast(e.message, true); }
   refresh();
 }
 
 async function setCard(sid, status) {
-  await fetch('/api/card-status', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, status }) });
-  toast(status === 'blocked' ? 'Card blocked — taps will flash red' : 'Card re-activated');
+  if (status === 'blocked' && !await ask({ title: 'Block this card?', body: 'Every bus rejects it instantly. The student\'s QR pass keeps working.', okText: 'Block card', danger: true })) return;
+  try {
+    await UI.api('/api/card-status', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, status }) });
+    toast(status === 'blocked' ? 'Card blocked — taps will flash red' : 'Card re-activated');
+  } catch (e) { UI.toast(e.message, true); }
   refresh();
 }
 
 async function assign(sid, name) {
-  const uid = prompt(`NFC sticker UID for ${name}\n(tap the sticker on an Android phone to read it, e.g. 04:a2:5c:1e)`);
+  const uid = await ask({ title: 'Assign a tap card', body: `NFC sticker UID for <b>${name}</b> — tap the sticker on an Android phone or USB reader to read it.`, input: true, placeholder: 'e.g. 04:a2:5c:1e', okText: 'Assign' });
   if (!uid) return;
-  await fetch('/api/assign-card', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, uid }) });
+  try {
+    await UI.api('/api/assign-card', { method: 'POST', headers: auth(), body: JSON.stringify({ sid, uid }) });
+    toast('Card assigned to ' + name);
+  } catch (e) { UI.toast(e.message, true); }
   refresh();
 }
 
-async function enroll() {
-  const name = $('en-name').value.trim();
-  const type = $('en-type').value;
-  const msg = $('en-msg');
-  if (!name) { msg.textContent = 'Name required'; return; }
-  let photo = null;
-  const f = $('en-photo').files[0];
-  if (f) photo = await shrink(f);
-  const r = await fetch('/api/students', { method: 'POST', headers: auth(), body: JSON.stringify({ name, type, photo }) });
-  const d = await r.json();
-  msg.textContent = d.ok ? `Enrolled as ${d.id} — PIN ${d.pin}` : (d.error || 'Failed');
-  $('en-name').value = ''; $('en-photo').value = '';
-  refresh();
+function enroll() {
+  UI.busy(event && event.currentTarget, async () => {
+    const name = $('en-name').value.trim();
+    const type = $('en-type').value;
+    const msg = $('en-msg');
+    if (!name) { msg.textContent = 'Name required'; $('en-name').focus(); return; }
+    msg.textContent = '';
+    let photo = null;
+    const f = $('en-photo').files[0];
+    if (f) photo = await shrink(f);
+    try {
+      const d = await UI.api('/api/students', { method: 'POST', headers: auth(), body: JSON.stringify({ name, type, photo }) });
+      $('en-name').value = ''; $('en-photo').value = '';
+      refresh();
+      await ask({ title: name + ' is enrolled ✓', body: `Student ID <b>${d.id}</b> — hand over this PIN now, it can't be shown again.<span class="big">${d.pin}</span>`, okText: 'Done', noCancel: true });
+    } catch (e) { msg.textContent = e.message; }
+  });
 }
 
 function shrink(file) {   // resize the photo to 160px so the database stays tiny
@@ -343,9 +450,9 @@ function showTab(name) {
 
 /* ---- logistics intelligence ---- */
 async function loadAnalytics() {
-  const r = await fetch('/api/admin/analytics', { headers: auth() });
-  if (r.status === 401) { signout(); return; }
-  const a = await r.json();
+  let a;
+  try { a = await UI.api('/api/admin/analytics', { headers: auth() }); }
+  catch (e) { if (e.status === 401) signout(); else UI.toast(e.message, true); return; }
 
   $('lstats').innerHTML = [
     [a.peakBoardings ? hh(a.peakHour) : '—', 'Peak hour'],
@@ -392,15 +499,21 @@ async function loadAnalytics() {
 }
 function hh(h) { return h === null ? '—' : String(h).padStart(2, '0') + ':00'; }
 
-async function seedDemo() {
-  await fetch('/api/admin/seed-demo', { method: 'POST', headers: auth() });
-  toast('Loaded a full day of demo boardings');
-  refresh(); if (currentTab === 'logistics') loadAnalytics();
+function seedDemo() {
+  UI.busy(event && event.currentTarget, async () => {
+    try {
+      await UI.api('/api/admin/seed-demo', { method: 'POST', headers: auth() });
+      toast('Loaded a full day of demo boardings');
+    } catch (e) { UI.toast(e.message, true); }
+    refresh(); if (currentTab === 'logistics') loadAnalytics();
+  });
 }
 async function resetData() {
-  if (!confirm('Clear all trips and passes? Students stay enrolled.')) return;
-  await fetch('/api/admin/reset', { method: 'POST', headers: auth() });
-  toast('Boarding data cleared');
+  if (!await ask({ title: 'Clear boarding data?', body: 'All trips and passes are deleted. Students stay enrolled.', okText: 'Clear everything', danger: true })) return;
+  try {
+    await UI.api('/api/admin/reset', { method: 'POST', headers: auth() });
+    toast('Boarding data cleared');
+  } catch (e) { UI.toast(e.message, true); }
   refresh(); if (currentTab === 'logistics') loadAnalytics();
 }
 function toast(msg) {

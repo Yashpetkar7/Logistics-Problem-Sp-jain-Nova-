@@ -239,6 +239,25 @@ const post = (url, body) => fetch(url, {
   body: JSON.stringify(body)
 });
 
+/* a scan must NEVER hang the kiosk: timeout + red error verdict on failure */
+async function safeScan(url, body) {
+  busy = true;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(url, {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', ...(DKEY ? { 'X-Device-Key': DKEY } : {}) },
+      body: JSON.stringify(body)
+    });
+    clearTimeout(t);
+    show(await r.json());
+  } catch (e) {
+    clearTimeout(t);
+    show({ result: 'red', reason: navigator.onLine === false ? 'Validator offline — check connection' : 'Network hiccup — tap again', student: null });
+  }
+}
+
 /* live counters — every validator on the route updates the instant any door scans */
 try {
   const es = new EventSource('/api/events');
@@ -253,20 +272,13 @@ try {
   es.addEventListener('trip', onLive);
 } catch (e) {}
 
-async function scan(payload) {
-  busy = true;
-  show(await (await post('/api/scan', { payload, busId: BUS })).json());
-}
-async function scanCard(uid) {
-  busy = true;
-  show(await (await post('/api/scan-card', { uid, busId: BUS })).json());
-}
-async function manual() {
+function scan(payload) { safeScan('/api/scan', { payload, busId: BUS }); }
+function scanCard(uid) { safeScan('/api/scan-card', { uid, busId: BUS }); }
+function manual() {
   const sid = $('manualId').value.trim();
   if (!sid) return;
-  busy = true;
   $('manualId').value = '';
-  show(await (await post('/api/scan-manual', { sid, busId: BUS })).json());
+  safeScan('/api/scan-manual', { sid, busId: BUS });
 }
 
 function show(d) {
@@ -285,9 +297,11 @@ function show(d) {
 }
 
 async function newTrip() {
-  await post('/api/trip/new', { busId: BUS });
-  lastSeen = '';
-  state();
+  const btn = event && event.currentTarget;
+  if (btn) btn.classList.add('busy');
+  try { await post('/api/trip/new', { busId: BUS }); lastSeen = ''; state(); }
+  catch (e) { /* surface as the standard red verdict */ show({ result: 'red', reason: 'Could not start a new trip — network?', student: null }); }
+  finally { if (btn) btn.classList.remove('busy'); }
 }
 
 let actx;

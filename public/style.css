@@ -179,6 +179,40 @@ tr:last-child td { border-bottom: 0; }
 @keyframes shake { 10%, 90% { transform: translateX(-2px) } 20%, 80% { transform: translateX(4px) } 30%, 70% { transform: translateX(-7px) } 50% { transform: translateX(7px) } }
 .shake { animation: shake .5s; }
 
+/* ---- production states: every control reacts ---- */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #2f7dd8; outline-offset: 2px;
+}
+.busy { position: relative; pointer-events: none; opacity: .75; }
+.busy::after {
+  content: ''; position: absolute; width: 15px; height: 15px;
+  right: 13px; top: calc(50% - 8px);
+  border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg) } }
+button[disabled] { opacity: .5; pointer-events: none; }
+
+/* skeleton shimmer while data loads */
+.skel { position: relative; overflow: hidden; background: rgba(0,0,0,.06); border-radius: 10px; }
+.skel::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: shimmer 1.3s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+
+/* offline banner */
+.netbar { position: fixed; left: 50%; top: 14px; transform: translateX(-50%) translateY(-160%);
+  z-index: 300; background: #16161a; color: #f6f4ef; font-size: 13.5px; font-weight: 600;
+  padding: 10px 20px; border-radius: 980px; box-shadow: 0 8px 26px rgba(20,18,12,.3);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1.2); }
+.netbar.show { transform: translateX(-50%) translateY(0); }
+
+/* page enter — every navigation lands softly */
+@media (prefers-reduced-motion: no-preference) {
+  .wrap, .stagewrap { animation: pagein .45s cubic-bezier(.2,.7,.2,1); }
+  @keyframes pagein { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+}
+
 ::selection { background: rgba(0, 113, 227, .2); }
 
 /* ============================================================
